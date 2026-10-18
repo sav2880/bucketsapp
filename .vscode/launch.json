@@ -1,0 +1,38 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Prototype: open in Chrome",
+      "type": "chrome",
+      "request": "launch",
+      "file": "${workspaceFolder}/prototype/dist/buckets-prototype.html",
+      "preLaunchTask": "Prototype: build"
+    },
+    {
+      "name": "Prototype: open in Edge",
+      "type": "msedge",
+      "request": "launch",
+      "file": "${workspaceFolder}/prototype/dist/buckets-prototype.html",
+      "preLaunchTask": "Prototype: build"
+    },
+    {
+      "name": "Prototype: debug engine tests",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/prototype",
+      "runtimeArgs": ["--test", "engine.test.js"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Prototype: debug smoke tests",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/prototype",
+      "runtimeArgs": ["--test", "smoke.test.js"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "preLaunchTask": "Prototype: build"
+    }
+  ]
+}

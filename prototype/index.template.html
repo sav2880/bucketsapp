@@ -1,0 +1,131 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Buckets clickable prototype. Built by build.js, which inlines styles.css, engine.js and app.js. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Buckets prototype</title>
+<style>
+/*STYLES*/
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+    <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
+    <p class="sidebar-label" id="bucketsLabel">Buckets</p>
+    <ul class="nav" id="bucketNav" aria-labelledby="bucketsLabel"></ul>
+    <button class="new-bucket" id="newBucketBtn" type="button">
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      New Bucket
+    </button>
+    <section class="proto" aria-labelledby="protoLabel">
+      <p class="proto-title" id="protoLabel">Prototype controls</p>
+      <p class="clock">Pretend it's <strong id="clockText"></strong></p>
+      <div class="proto-row" role="group" aria-label="Move time forward">
+        <button type="button" class="chip-btn" data-advance="3600000">+1 hour</button>
+        <button type="button" class="chip-btn" data-advance="86400000">+1 day</button>
+        <button type="button" class="chip-btn" data-advance="2592000000">+30 days</button>
+      </div>
+      <label class="proto-field"><span>Theme</span>
+        <select id="themeSel">
+          <option value="auto">Match system</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
+      <label class="proto-check"><input type="checkbox" id="motionChk"> Reduce motion</label>
+      <button type="button" class="link-btn" id="resetBtn">Reset demo</button>
+    </section>
+  </aside>
+
+  <div class="divider" data-pane="sidebar" role="separator" aria-orientation="vertical" aria-label="Resize sidebar. Arrow keys resize, Enter hides or shows." tabindex="0"></div>
+
+  <main class="main" id="main">
+    <header class="toolbar">
+      <button class="icon-btn" id="sidebarToggle" type="button" aria-label="Show or hide the sidebar" aria-controls="sidebar">
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><rect x="2" y="3" width="14" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M7 3v12" stroke="currentColor" stroke-width="1.4"/></svg>
+      </button>
+      <div class="title-wrap">
+        <h1 class="bucket-title" id="bucketTitle"></h1>
+        <span class="preset-chip" id="presetChip"></span>
+      </div>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="inspectorToggle" type="button" aria-label="Show or hide the inspector" aria-controls="inspector">
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M9 8v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="9" cy="5.4" r="1" fill="currentColor"/></svg>
+      </button>
+    </header>
+
+    <section class="stage" aria-label="Bucket">
+      <div class="bucket-col">
+        <svg id="bucketArt" class="bucket-art" viewBox="0 0 260 250" role="img" aria-labelledby="bucketArtTitle">
+          <title id="bucketArtTitle">Bucket</title>
+          <defs>
+            <linearGradient id="enamelGrad" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0" class="g-light"/>
+              <stop offset="0.55" class="g-mid"/>
+              <stop offset="1" class="g-dark"/>
+            </linearGradient>
+          </defs>
+          <ellipse class="art-shadow" cx="130" cy="234" rx="86" ry="9"/>
+          <g id="bucketBody" class="bucket-body">
+            <path class="handle" d="M38 74 C 44 -6, 216 -6, 222 74"/>
+            <ellipse class="interior" cx="130" cy="70" rx="93" ry="19"/>
+            <path class="rim" d="M35 70 A95 20 0 0 1 225 70"/>
+            <g id="slips"></g>
+            <path class="body" d="M35 70 L60 218 A70 14 0 0 0 200 218 L225 70 A95 20 0 0 1 35 70 Z"/>
+            <path class="ring" d="M41 104 Q130 128 219 104"/>
+            <path class="ring" d="M56 196 Q130 216 204 196"/>
+            <path class="sheen" d="M58 88 L72 200"/>
+            <path class="rim" d="M35 70 A95 20 0 0 0 225 70"/>
+            <circle class="rivet" cx="40" cy="80" r="5"/>
+            <circle class="rivet" cx="220" cy="80" r="5"/>
+            <g class="face" aria-hidden="true">
+              <ellipse class="cheek" cx="99" cy="156" rx="8" ry="4.5"/>
+              <ellipse class="cheek" cx="161" cy="156" rx="8" ry="4.5"/>
+              <g data-face="idle"><circle class="face-part" cx="112" cy="142" r="5"/><circle class="face-part" cx="148" cy="142" r="5"/><path class="face-line" d="M118 156 Q130 166 142 156"/></g>
+              <g data-face="wow"><circle class="face-part" cx="112" cy="140" r="6"/><circle class="face-part" cx="148" cy="140" r="6"/><ellipse class="face-part" cx="130" cy="160" rx="6" ry="7.5"/></g>
+              <g data-face="happy"><path class="face-line" d="M105 144 Q112 134 119 144"/><path class="face-line" d="M141 144 Q148 134 155 144"/><path class="face-line" d="M114 154 Q130 172 146 154"/></g>
+              <g data-face="wait"><circle class="face-part" cx="117" cy="142" r="5"/><circle class="face-part" cx="153" cy="142" r="5"/><path class="face-line" d="M121 158 L139 158"/></g>
+              <g data-face="sleep"><path class="face-line" d="M105 141 Q112 147 119 141"/><path class="face-line" d="M141 141 Q148 147 155 141"/><path class="face-line" d="M125 159 Q130 162 135 159"/></g>
+              <g data-face="no"><circle class="face-part" cx="112" cy="142" r="5"/><circle class="face-part" cx="148" cy="142" r="5"/><path class="face-line" d="M120 161 Q130 153 140 161"/></g>
+            </g>
+            <g id="lid" class="lid">
+              <ellipse class="lid-edge" cx="130" cy="72" rx="100" ry="22"/>
+              <ellipse class="lid-top" cx="130" cy="67" rx="100" ry="22"/>
+              <ellipse class="lid-shine" cx="102" cy="60" rx="38" ry="7"/>
+              <rect class="lid-knob" x="116" y="50" width="28" height="13" rx="6.5"/>
+            </g>
+          </g>
+        </svg>
+        <button class="draw-btn" id="drawBtn" type="button" aria-describedby="drawHint"><span id="drawLabel">Draw</span><kbd id="drawKbd"></kbd></button>
+        <p class="draw-hint" id="drawHint"></p>
+      </div>
+      <div class="hand-col">
+        <h2 class="hand-title">In hand</h2>
+        <div class="hand-cards" id="handCards"></div>
+        <button class="done-pile" id="donePile" type="button" hidden></button>
+      </div>
+    </section>
+
+    <section class="contents" id="contents" aria-label="What's in the bucket"></section>
+  </main>
+
+  <div class="divider" data-pane="inspector" role="separator" aria-orientation="vertical" aria-label="Resize inspector. Arrow keys resize, Enter hides or shows." tabindex="0"></div>
+
+  <aside class="inspector" id="inspector" aria-label="Inspector"></aside>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<dialog class="sheet" id="sheet"></dialog>
+<div class="sr-only" id="live" aria-live="polite"></div>
+
+<script>
+/*ENGINE*/
+</script>
+<script>
+/*APP*/
+</script>
+</body>
+</html>

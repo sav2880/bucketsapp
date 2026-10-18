@@ -1,0 +1,12 @@
+{
+  "eslint.workingDirectories": ["./prototype"],
+  "eslint.useFlatConfig": true,
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "editor.tabSize": 2,
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "options": { "cwd": "${workspaceFolder}/prototype" },
+  "tasks": [
+    {
+      "label": "Prototype: install",
+      "type": "shell",
+      "command": "npm ci",
+      "problemMatcher": []
+    },
+    {
+      "label": "Prototype: check (lint + tests)",
+      "type": "shell",
+      "command": "npm run check",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "Prototype: build",
+      "type": "shell",
+      "command": "npm run build",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Prototype: engine tests only",
+      "type": "shell",
+      "command": "node --test engine.test.js",
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}

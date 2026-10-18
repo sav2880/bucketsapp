@@ -1,0 +1,5 @@
+# Keep LF line endings on every OS (Windows clones included).
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.icns binary
