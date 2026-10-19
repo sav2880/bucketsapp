@@ -27,6 +27,7 @@ export function App({ theme }: AppProps): ReactElement {
         background: "var(--bg)",
         color: "var(--text)",
         fontFamily: "var(--font)",
+        colorScheme: theme,
       }}
     >
       <h1>{strings["app.name"]}</h1>
