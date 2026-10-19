@@ -4,9 +4,9 @@
 
 Buckets holds the things you want to do: games to play, systems to maintain, chores, ideas. When you're ready, you reach in and pull one out. Different bucket types decide *how* things come out and *what happens* when you're finished.
 
-> **Status: pre-alpha (planning).** The commands below describe the planned workflow. They go live when milestone M0 lands. See [plan.md](plan.md).
+> **Status: pre-alpha.** Milestone M0 (repo foundations) is built: the workspace, tooling, checks, CI and an empty desktop window. There is no product code yet. The draw engine is M1; see [plan.md](plan.md). Commands marked *not yet* below need a later milestone.
 >
-> What runs today is the clickable prototype in [`prototype/`](prototype/README.md): `cd prototype && npm ci && npm run check`, then open `prototype/dist/buckets-prototype.html`.
+> The feel of the app is in the clickable prototype in [`prototype/`](prototype/README.md): `cd prototype && npm ci && npm run check`, then open `prototype/dist/buckets-prototype.html`.
 
 ## Bucket types
 
@@ -67,7 +67,7 @@ Follow the [Tauri Linux prerequisites](https://v2.tauri.app/start/prerequisites/
 git clone <repo-url> buckets && cd buckets
 corepack enable
 pnpm install
-pnpm dev:web        # web app at http://localhost:5173
+pnpm dev:web        # not yet: the web app arrives in M2
 pnpm dev:desktop    # desktop app with hot reload
 ```
 
@@ -75,15 +75,16 @@ pnpm dev:desktop    # desktop app with hot reload
 
 | Command | What it does |
 |---|---|
-| `pnpm check` | **Run before every commit.** Runs lint, format check, type-check, terminology check, unit tests, and Rust checks. |
+| `pnpm check` | **Run before every commit.** Runs lint, format check, type-check, the terminology, SPDX-header and license checks, unit tests with coverage thresholds, and the Rust checks. |
 | `pnpm lint` | ESLint (zero warnings allowed) |
 | `pnpm format` | Format all files with Prettier and `cargo fmt` |
 | `pnpm typecheck` | `tsc --noEmit` across all packages |
 | `pnpm test` | Unit and component tests (Vitest) |
 | `pnpm test:coverage` | Tests with coverage thresholds enforced |
-| `pnpm test:e2e` | Playwright tests against the web build |
-| `pnpm test:rust` | `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test` |
-| `pnpm build:web` | Production PWA in `apps/web/dist` |
+| `pnpm check:terminology`, `pnpm check:spdx`, `pnpm check:licenses` | The repo checks on their own |
+| `pnpm test:e2e` | *Not yet:* Playwright tests against the web build (M2 onward) |
+| `pnpm test:rust` | `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `cargo deny check` |
+| `pnpm build:web` | *Not yet:* production PWA in `apps/web/dist` (M2 onward) |
 | `pnpm build:desktop` | Builds the desktop app for the current OS. Installers (`.dmg`, `.msi`, `.deb` and so on) are switched off until M12; for now the binary lands in `apps/desktop/src-tauri/target/release/` |
 
 ## Building releases
@@ -109,7 +110,7 @@ pnpm build:desktop
 # Output: apps\desktop\src-tauri\target\release\bundle\{msi,nsis}\
 ```
 
-Each OS builds its own installers. CI builds both platforms on every pull request (see `.github/workflows/`). Signing needs certificates that are configured as CI secrets. Unsigned builds work but show OS security warnings.
+**Not available yet:** installers and the web build. Today `pnpm build:desktop` produces only the binary (installers are switched off until M12), so the `bundle/` output folders above won't exist yet. Each OS builds its own installers. CI runs `pnpm check` and a desktop build on Ubuntu, Windows and macOS on every push to `main` and every pull request (see `.github/workflows/`). Signing needs certificates that are configured as CI secrets. Unsigned builds work but show OS security warnings.
 
 ## Running the sync server (optional)
 

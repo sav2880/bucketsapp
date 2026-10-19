@@ -2,11 +2,17 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.5 (planning, no code yet) |
-| **Last updated** | 2026-09-30 |
+| **Status** | Draft v0.6 (M0 foundations in place; no product code yet) |
+| **Last updated** | 2026-10-18 |
 | **Platforms** | Web (offline-capable PWA), Windows 10 21H2+ / 11, macOS 12+, Linux: Ubuntu 22.04+, Fedora 39+, or equivalent (x64 + arm64) |
 | **Stack** | Tauri 2 + React + TypeScript, Automerge (CRDT), end-to-end encrypted sync |
 | **License** | Apache-2.0 (apps and packages) · AGPL-3.0-only (`server/`) |
+
+### Changes in v0.6
+
+- M0 foundations are built: pnpm workspace with package stubs, strict TypeScript, ESLint, Prettier, Vitest, the terminology, SPDX and license checks, design tokens, a placeholder icon, an empty Tauri 2 window, and CI on Ubuntu, Windows and macOS (§14, §15).
+- Toolchain notes recorded in §14: TypeScript 6, ESLint 9, the extra dev-only licenses on the allowlist, and `cargo-deny` for Rust.
+- One open question added: the app's bundle identifier (§18).
 
 ### Changes in v0.5
 
@@ -737,10 +743,19 @@ Possible later channels: Mac App Store, Microsoft Store, Flathub, and Snap.
 | License headers | Every source file starts with an SPDX header (`Apache-2.0` or `AGPL-3.0-only`, by location) | Checked by a script in CI |
 | Docs | TSDoc on every exported symbol; rustdoc on public Rust items | Must pass |
 
+**Toolchain notes (as built in M0):**
+
+- **TypeScript 6 and ESLint 9.** typescript-eslint doesn't support TypeScript 7 yet, and `eslint-plugin-jsx-a11y` doesn't support ESLint 10. Revisit both when those plugins catch up.
+- **npm license allowlist** also accepts Python-2.0 and CC-BY-3.0/4.0. They appear only in dev tooling (argparse, caniuse-lite, spdx-exceptions) and are attribution-only. Shipped code stays permissive-only.
+- **Rust dependencies** are checked with `cargo-deny` (`apps/desktop/src-tauri/deny.toml`): permissive licenses, RustSec advisories, known registries only. One advisory is ignored, RUSTSEC-2024-0370 (an unmaintained build-time macro pulled in by Tauri's Linux backend); the reason is recorded in the file.
+- **Prettier skips Markdown** and `.claude/`, so hand-formatted docs and tables aren't rewritten.
+- **pnpm** runs no dependency build scripts by default; `allowBuilds` in `pnpm-workspace.yaml` records the decision for esbuild (denied; `tsx` and `vite` don't need it).
+
 **CI** (GitHub Actions):
 
 - Lint, type-check, and test on Ubuntu.
-- Tauri builds on `windows-latest`, `macos-latest` (universal), and `ubuntu-22.04` (x64 and arm64).
+- Tauri builds on `windows-latest`, `macos-latest` (universal), and `ubuntu-22.04` (x64 and arm64). Today (M0) they build x64 or native only, with `--no-bundle`; universal, arm64 and installers come with M12.
+- `pnpm check` runs on all three OSes on every push to `main` and every pull request, plus a DCO sign-off check on pull requests and the prototype's own gate.
 - Playwright tests.
 - Server image build plus integration tests.
 - Build artifacts uploaded for every pull request.
@@ -766,6 +781,8 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 | M10 | More bucket types | Weighted, Simmer, Mystery Bag, Daily Draw, Round Robin, Nested Buckets | Each preset has unit, statistical, and E2E coverage | 2 wk |
 | M11 | Hosted service | Production deployment, quotas, backups, status page, privacy policy and terms, **independent security review** | Review findings resolved; load test passes | 2 wk + review time |
 | M12 | Polish and release | Accessibility audit, signing on all OSes, updater, installers, docs site, SBOM | v1.0 released for Win, Mac, Linux, and web | 2 wk |
+
+**M0 status (2026-10-18):** everything in the scope column is built, and `pnpm check` and the Tauri build pass in CI on Ubuntu, Windows and macOS. Still to record: a person opening the empty window on each OS (CI can't see it). The icon is a placeholder draft (`docs/design/app-icon.svg`).
 
 **Total: about 31.5 weeks**, plus the security review's turnaround. A usable personal build without sync (M0–M4) takes about 11.5 weeks. Personal sync across your own devices is ready after M7, at about 20.5 weeks.
 
@@ -805,4 +822,8 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 
 ## 18. Open questions
 
-None right now. New questions go here as they come up during development (see AGENTS.md §11).
+| # | Question | Notes |
+|---|---|---|
+| 1 | What is the app's bundle identifier? | `apps/desktop/src-tauri/tauri.conf.json` uses the placeholder `com.example.buckets`. The identifier sets where the desktop app keeps its data and is used for macOS notarization and the updater, so pick a reverse-domain name you control before any release (M12 at the latest). |
+
+New questions go here as they come up during development (see AGENTS.md §11).
