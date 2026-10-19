@@ -20,6 +20,7 @@ This file tells AI agents (and humans) how to work in the Buckets repository. Re
 | Path | Purpose | Notes |
 |---|---|---|
 | `packages/core` | Model, rules, draw engine, derived state, migrations | Pure; ≥ 95% line coverage |
+| `packages/crypto` | Keys, encryption, signing, recovery key (libsodium) | Imports nothing internal; ≥ 95% line coverage |
 | `packages/ui` | React components, design tokens, bucket SVG and animations | No direct platform APIs; use adapters |
 | `packages/storage` | `StorageAdapter` implementations (Tauri FS, IndexedDB, File System Access) | Atomic writes only |
 | `packages/sync` | automerge-repo setup, folder sync, server client | Writes only to its own device folder |
@@ -30,7 +31,7 @@ This file tells AI agents (and humans) how to work in the Buckets repository. Re
 | `e2e/` | Playwright | Use `data-testid`, not CSS selectors |
 | `prototype/` | Clickable HTML prototype (plain JS, npm) | Reference behaviour for M1; see §12 |
 
-**Import direction:** apps → ui → (storage, sync, export) → core. Nothing imports from an app. `core` imports nothing internal.
+**Import direction:** apps → ui → (storage, sync, export) → (core, crypto). `storage` and `sync` may import `core` and `crypto`; `export` may import `core`. Nothing imports from an app. `core` and `crypto` import nothing internal. ESLint enforces this per package (`eslint.config.js`).
 
 ## 3. Commands
 
@@ -145,8 +146,8 @@ Don't guess on product questions. Add the question to plan.md §18 (Open questio
 
 ## 12. Current state and the prototype
 
-- **The monorepo in §2 doesn't exist yet.** Creating it is milestone M0 (plan.md §15). Until M0 lands, `pnpm` commands won't work.
-- **Until then, the quality gate is `cd prototype && npm run check`** (ESLint, engine unit tests, build, jsdom smoke tests).
+- **The monorepo in §2 is partly in place.** M0 slice 1 added the pnpm workspace with empty package stubs, strict TypeScript, ESLint, Prettier, Vitest and `pnpm check`. Slice 3 added design tokens (`packages/ui/src/tokens`), a placeholder icon (`docs/design/app-icon.svg`) and the CI workflow. Slice 2 added the empty Tauri 2 window (`apps/desktop/src-tauri`), so `pnpm test:rust` now runs `cargo fmt --check`, `clippy -D warnings`, `cargo test` and `cargo deny check`; it needs Rust and `cargo-deny` installed. M0 is complete once CI is green on all three OSes and someone has opened the window on each one.
+- **Two gates exist:** `pnpm check` at the root for the workspace, and `cd prototype && npm run check` for the prototype (ESLint, engine unit tests, build, jsdom smoke tests). `prototype/` is outside the pnpm workspace; run both when you touch both.
 - `prototype/` is plain JavaScript with JSDoc, not TypeScript. It's exempt from the TypeScript and package rules above, but rules 1, 3, 4, 5, 6 and 9 still apply.
 - `prototype/engine.js` is the reference implementation of plan.md §6. In M1, port it to `packages/core` in TypeScript and port `engine.test.js` with it, keeping every scenario.
 - Once M1 ships, either delete `prototype/` or move it to `docs/prototype/`. Ask the maintainer which.

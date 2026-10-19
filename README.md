@@ -37,8 +37,9 @@ Every rule can be adjusted per bucket.
 | Tool | Version | Needed for |
 |---|---|---|
 | [Node.js](https://nodejs.org) | 22 LTS or newer | Everything |
-| [pnpm](https://pnpm.io) | 9 or newer (`corepack enable`) | Everything |
-| [Rust](https://rustup.rs) | Latest stable via `rustup` | Desktop builds |
+| [pnpm](https://pnpm.io) | 12 (pinned in `package.json`; `corepack enable`) | Everything |
+| [Rust](https://rustup.rs) | Latest stable via `rustup` | Desktop builds and `pnpm check` |
+| [cargo-deny](https://github.com/EmbarkStudios/cargo-deny) | `cargo install --locked cargo-deny` | `pnpm check` (Rust license and advisory check) |
 | Docker | Any recent version | Running the sync server (optional) |
 
 ### Platform setup
@@ -83,7 +84,7 @@ pnpm dev:desktop    # desktop app with hot reload
 | `pnpm test:e2e` | Playwright tests against the web build |
 | `pnpm test:rust` | `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test` |
 | `pnpm build:web` | Production PWA in `apps/web/dist` |
-| `pnpm build:desktop` | Installer for the current OS |
+| `pnpm build:desktop` | Builds the desktop app for the current OS. Installers (`.dmg`, `.msi`, `.deb` and so on) are switched off until M12; for now the binary lands in `apps/desktop/src-tauri/target/release/` |
 
 ## Building releases
 
@@ -126,12 +127,14 @@ Put it behind HTTPS. `server/README.md` includes a Caddy example. In Buckets, op
 apps/web          Web app (PWA)
 apps/desktop      Desktop app (Tauri; Rust in src-tauri/)
 packages/core     Data model and draw engine (pure TypeScript)
+packages/crypto   Keys, encryption and signing (libsodium)
 packages/ui       React components and bucket visuals
 packages/storage  File and browser storage adapters
 packages/sync     Folder sync and sync-server client
 packages/export   Exporters and importers
 server/           Self-hostable sync server
 e2e/              Playwright tests
+scripts/          Repo checks (terminology, SPDX headers, licenses)
 docs/             Architecture notes and design assets
 prototype/        Clickable HTML prototype (plain JS; reference for M1)
 ```
