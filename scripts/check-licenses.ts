@@ -2,7 +2,7 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, posix, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isEntryPoint, listFiles } from "./lib/files";
 
@@ -56,7 +56,8 @@ export function findServerImports(path: string, source: string): string[] {
   for (const match of source.matchAll(specifier)) {
     const target = match[1] ?? "";
     if (!target.startsWith(".")) continue;
-    const resolved = resolve("/repo", dirname(path), target);
+    // Repo-relative paths always use "/", so resolve them as POSIX paths on every OS.
+    const resolved = posix.resolve("/repo", posix.dirname(path), target);
     if (resolved.startsWith("/repo/server/") || resolved === "/repo/server") {
       problems.push(`${path}: imports from server/ via "${target}"`);
     }
@@ -69,6 +70,9 @@ if (isEntryPoint(import.meta.url)) {
   const output = execFileSync("pnpm", ["licenses", "list", "--json"], {
     cwd: root,
     encoding: "utf8",
+    // On Windows pnpm is a .cmd wrapper, which can only be started through a shell.
+    // The command and arguments are fixed, so nothing here is user input.
+    shell: process.platform === "win32",
     maxBuffer: 64 * 1024 * 1024,
   });
   const problems = findDisallowed(JSON.parse(output) as LicenseReport);
