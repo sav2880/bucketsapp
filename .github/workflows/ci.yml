@@ -56,7 +56,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-22.04
+            binary: buckets-desktop
+          - os: windows-latest
+            binary: buckets-desktop.exe
+          - os: macos-latest
+            binary: buckets-desktop
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -75,6 +81,14 @@ jobs:
           workspaces: apps/desktop/src-tauri
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @buckets/desktop tauri build --no-bundle
+      # For hand-testing the empty window on machines without dev tools. Unsigned, and the
+      # upload drops the executable bit, so on Linux run `chmod +x buckets-desktop` first.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: buckets-desktop-${{ matrix.os }}
+          path: apps/desktop/src-tauri/target/release/${{ matrix.binary }}
+          if-no-files-found: error
+          retention-days: 14
 
   # The prototype is outside the pnpm workspace and keeps its own gate until M1.
   prototype:
