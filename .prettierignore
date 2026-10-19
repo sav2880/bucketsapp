@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+target
+pnpm-lock.yaml
+prototype
+# Hand-formatted docs and agent settings: Prettier would rewrite their tables and lists.
+*.md
+.claude

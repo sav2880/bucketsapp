@@ -3,6 +3,7 @@ node_modules/
 dist/
 coverage/
 target/
+**/src-tauri/gen/
 *.tsbuildinfo
 
 # Personal Claude Code files
