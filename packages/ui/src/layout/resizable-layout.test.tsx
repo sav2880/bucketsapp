@@ -2,20 +2,8 @@
 
 import { createMemoryStorage, createSettingsStore } from "@buckets/storage";
 import { render, screen } from "@testing-library/react";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ResizableLayout, type PaneSpec } from "./resizable-layout";
-
-beforeAll(() => {
-  // jsdom has no layout engine; the panels library only needs these to exist.
-  vi.stubGlobal(
-    "ResizeObserver",
-    class {
-      observe(): void {}
-      unobserve(): void {}
-      disconnect(): void {}
-    },
-  );
-});
 
 const panes: PaneSpec[] = [
   {

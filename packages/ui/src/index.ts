@@ -44,5 +44,17 @@ export {
   type LibraryProviderProps,
 } from "./library/library-provider";
 
+export {
+  EnvironmentProvider,
+  useActions,
+  useEnvironment,
+  useNow,
+  type Actions,
+  type AppEnvironment,
+  type EnvironmentProviderProps,
+} from "./app-environment";
+export { Shell } from "./shell/shell";
+export { shortcutOf, useShortcuts, type ShortcutBindings } from "./shell/use-shortcuts";
+
 /** Name of this package; a placeholder until its milestone lands (plan.md §15). */
 export const PACKAGE_NAME = "@buckets/ui";

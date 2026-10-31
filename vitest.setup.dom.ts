@@ -8,3 +8,21 @@ import { afterEach } from "vitest";
 afterEach(() => {
   cleanup();
 });
+
+// jsdom does not implement the modal parts of <dialog>; this is enough for open/close and the
+// `close` event that components listen to.
+HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement): void {
+  this.setAttribute("open", "");
+};
+HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement): void {
+  this.removeAttribute("open");
+  this.dispatchEvent(new Event("close"));
+};
+
+// jsdom has no layout engine, so it has no ResizeObserver either; components that measure
+// themselves only need it to exist. Tests that want to drive it stub their own.
+window.ResizeObserver = class {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+};
