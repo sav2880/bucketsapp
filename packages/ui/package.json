@@ -10,5 +10,10 @@
   "peerDependencies": {
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
+  },
+  "dependencies": {
+    "@buckets/core": "workspace:*",
+    "@buckets/storage": "workspace:*",
+    "react-resizable-panels": "^4.15.3"
   }
 }

@@ -99,6 +99,74 @@ export const darkColors: ColorTokens = {
   onEnamel: "#ffffff",
 };
 
+/** How a bucket color name looks in one theme (see `BUCKET_COLORS` in `@buckets/core`). */
+export interface BucketPaint {
+  /** Fill for the bucket art and swatches. */
+  enamel: string;
+  /** The color as text on the window background, darkened in light mode for contrast. */
+  enamelText: string;
+  /** Text drawn on top of the fill. */
+  onEnamel: string;
+}
+
+/** The fill, text and on-fill colors of each bucket color, from the prototype. `accent` is the default violet. */
+const bucketHues = {
+  accent: { fill: "#8b5cf6", text: "#7a45ec", on: "#ffffff" },
+  purple: { fill: "#8b5cf6", text: "#7442e8", on: "#ffffff" },
+  blue: { fill: "#3b82d6", text: "#2a6cbd", on: "#ffffff" },
+  teal: { fill: "#1f9ba0", text: "#137f84", on: "#ffffff" },
+  green: { fill: "#2fa36b", text: "#1d8653", on: "#ffffff" },
+  yellow: { fill: "#e8ac2e", text: "#9a6a05", on: "#2c2100" },
+  pink: { fill: "#e0517a", text: "#c73862", on: "#ffffff" },
+} as const;
+
+/**
+ * Looks up a bucket color. Unknown names fall back to the default, so a color added by a newer
+ * version never breaks an older build.
+ *
+ * @param name - A bucket's `color` field.
+ * @param theme - Which theme to paint for.
+ * @returns The three colors.
+ */
+export function bucketPaint(name: string, theme: Theme): BucketPaint {
+  const hue =
+    (bucketHues as Record<string, (typeof bucketHues)[keyof typeof bucketHues]>)[name] ??
+    bucketHues.accent;
+  // On a dark background the fill itself reads well as text.
+  return { enamel: hue.fill, enamelText: theme === "dark" ? hue.fill : hue.text, onEnamel: hue.on };
+}
+
+/**
+ * CSS custom properties for one bucket's color, to set on the element that shows the bucket.
+ *
+ * @param name - A bucket's `color` field.
+ * @param theme - Which theme to paint for.
+ * @returns A map from custom property name to value.
+ */
+export function bucketColorVariables(name: string, theme: Theme): Record<string, string> {
+  const paint = bucketPaint(name, theme);
+  return {
+    "--enamel": paint.enamel,
+    "--enamel-text": paint.enamelText,
+    "--on-enamel": paint.onEnamel,
+  };
+}
+
+/** Shadow under raised cards, per theme. */
+export const cardShadow = {
+  light: "0 1px 1px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08)",
+  dark: "0 1px 1px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.45)",
+} as const;
+
+/** The ring drawn around a focused control. */
+export const focusRing = "0 0 0 3px color-mix(in srgb, var(--accent) 38%, transparent)";
+
+/** Fixed sizes. */
+export const sizes = {
+  /** Height of the toolbar above each pane. */
+  toolbarH: "58px",
+} as const;
+
 /** Corner radii. */
 export const radius = { s: "6px", m: "10px", l: "14px" } as const;
 
@@ -148,6 +216,10 @@ export function cssVariables(theme: Theme): Record<string, string> {
   }
   for (const [size, value] of Object.entries(radius)) variables[`--r-${size}`] = value;
   for (const [step, value] of Object.entries(spacing)) variables[`--space-${step}`] = value;
+  variables["--shadow-card"] = cardShadow[theme];
+  variables["--focus-ring"] = focusRing;
+  variables["--toolbar-h"] = sizes.toolbarH;
+  Object.assign(variables, bucketColorVariables("accent", theme));
   variables["--ease-out"] = motion.easeOut;
   variables["--font"] = fontStack;
   return variables;
