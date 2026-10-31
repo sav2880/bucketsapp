@@ -12,11 +12,20 @@ export default defineConfig({
   retries: process.env["CI"] ? 1 : 0,
   reporter: process.env["CI"] ? [["github"], ["list"]] : "list",
   use: { baseURL: "http://localhost:4173", trace: "retain-on-failure" },
-  webServer: {
-    command: "pnpm --filter @buckets/web preview",
-    url: "http://localhost:4173",
-    reuseExistingServer: !process.env["CI"],
-  },
+  webServer: [
+    {
+      command: "pnpm --filter @buckets/web preview",
+      url: "http://localhost:4173",
+      reuseExistingServer: !process.env["CI"],
+    },
+    // The dev server loads dependencies differently from the build, and it is what `tauri dev`
+    // uses, so dev-server.spec.ts guards it separately.
+    {
+      command: "pnpm --filter @buckets/web dev",
+      url: "http://localhost:5173",
+      reuseExistingServer: !process.env["CI"],
+    },
+  ],
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
