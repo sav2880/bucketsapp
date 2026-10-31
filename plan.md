@@ -12,7 +12,7 @@
 
 - M0 is complete: the empty window has been checked by hand on macOS, Windows and Linux (§15).
 - M1 is built in `packages/core`: the data model, presets, commands, derived state, the draw and resolve functions, reminder scheduling, history compaction and the migration mechanism. §5–§8 now record the decisions M1 had to make: the `Duration` type, the `draw` and `resolve` call shapes, the RRULE subset, the compaction baseline and how migrations work.
-- Two open questions added: the Daily Draw defaults and when `autoReturnAt` takes effect (§18).
+- Daily Draw now draws 2 items at a time (decision 14), the prototype moved to `docs/prototype/` (decision 15), and `autoReturnAt` is worked out while reading, with no events written (decision 16, §6.2).
 
 ### Changes in v0.6
 
@@ -205,6 +205,7 @@ interface Bucket {
   rules: BucketRules;
   members: Record<string, Member>;  // just the owner for an unshared bucket
   sharing: SharingSettings;         // privacy options for shared buckets (§10.5)
+  timeZone?: string;                // IANA zone for time-of-day rules such as autoReturnAt; UTC when absent
   items: Record<string, Item>;
   itemOrder: string[];
   events: DrawEvent[];     // append-only
@@ -342,7 +343,7 @@ Details the implementation settled:
 - `favorUndrawn` applies whenever it is on and the item has not had a turn this cycle (it does not require `noRepeat`), except in the draw that starts a new cycle.
 - `round-robin` ignores weights: never-drawn items come first in bucket order, then whoever waited longest.
 - `resolve(bucket, request)` builds the `done` or `tossed-back` event. The holder may resolve their own item; owners and editors may resolve anyone's. `requireAllSteps` refuses `done` with `steps-incomplete`. When `applyEvents` appends a `done` event for an item that returns to the bucket, and `resetStepsOnReturn` is on, it unticks the item's steps.
-- `autoReturnAt` is stored and validated (`HH:MM`) but nothing acts on it yet; see §18.
+- `autoReturnAt` (`HH:MM`, in the bucket's `timeZone`) is **derived, not written**. No event is created when items go back. While reading, an item in hand counts as returned once the first `autoReturnAt` after the time it was drawn has passed. There is nothing to coordinate between devices, and it works while every device is closed. Returning gives the turn back unless `tossBackCountsAsDrawn` is on. A finish stamped after the return time is ignored; one stamped before it, arriving late from an offline device, still counts. The rule reads the bucket's current rules, because no event exists to snapshot them. An invalid `timeZone` turns the rule off.
 
 **Your 10-systems example** (Rotation Pool with `noRepeat: until-cycle-complete` and `cycleResetAfter: 30 days`): You finish 6 of 10. Draws only offer the other 4. Once 30 days have passed since one of those 6 was finished, it re-enters the pool. With `favorUndrawn` on, the 4 untouched systems still come up three times as often as the re-entered ones.
 
@@ -792,7 +793,7 @@ Possible later channels: Mac App Store, Microsoft Store, Flathub, and Snap.
 
 - Lint, type-check, and test on Ubuntu.
 - Tauri builds on `windows-latest`, `macos-latest` (universal), and `ubuntu-22.04` (x64 and arm64). Today (M0) they build x64 or native only, with `--no-bundle`; universal, arm64 and installers come with M12.
-- `pnpm check` runs on all three OSes on every push to `main` and every pull request, plus a DCO sign-off check on pull requests and the prototype's own gate.
+- `pnpm check` runs on all three OSes on every push to `main` and every pull request, plus a DCO sign-off check on pull requests and the archived prototype's own gate.
 - Playwright tests.
 - Server image build plus integration tests.
 - Build artifacts uploaded for every pull request.
@@ -821,7 +822,7 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 
 **M0 status (2026-10-30): complete.** Everything in the scope column is built, and `pnpm check` and the Tauri build passed in CI on Ubuntu, Windows and macOS. The empty window has been opened and checked by hand on macOS, Windows and Linux. The icon is a placeholder draft (`docs/design/app-icon.svg`). Next is M1.
 
-**M1 status (2026-10-30): built in `packages/core`; awaiting maintainer review.** Delivered: the data model and eight presets; role-checked commands; derived state; `checkDraw`, `draw` and `resolve`; Efraimidis–Spirakis sampling and round robin; `nextFireTimes` with the RRULE subset; history compaction; the migration mechanism; and tests (every scenario from `prototype/engine.test.js` including the 10-systems example, chi-square fairness over 100,000 seeded draws, fast-check properties, and a property test that compaction never changes derived state). Intentional differences from the prototype are listed in `docs/adr/0001-core-engine-decisions.md`. `prototype/` is untouched and still the reference until the maintainer decides whether to delete it or move it to `docs/prototype/`.
+**M1 status (2026-10-30): built in `packages/core`; awaiting maintainer review.** Delivered: the data model and eight presets; role-checked commands; derived state; `checkDraw`, `draw` and `resolve`; Efraimidis–Spirakis sampling and round robin; `nextFireTimes` with the RRULE subset; history compaction; the migration mechanism; and tests (every scenario from `prototype/engine.test.js` including the 10-systems example, chi-square fairness over 100,000 seeded draws, fast-check properties, and a property test that compaction never changes derived state). Intentional differences from the prototype are listed in `docs/adr/0001-core-engine-decisions.md`. The prototype was moved unchanged to `docs/prototype/` as frozen history.
 
 **Total: about 31.5 weeks**, plus the security review's turnaround. A usable personal build without sync (M0–M4) takes about 11.5 weeks. Personal sync across your own devices is ready after M7, at about 20.5 weeks.
 
@@ -858,6 +859,9 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 | 11 | Recovery trade-off | Accepted: no server-assisted recovery | §9.4 |
 | 12 | Shared-bucket privacy | Give the option | §5 `SharingSettings`, new §10.5 |
 | 13 | Minimum OS versions | macOS 12+, Windows 10 21H2+, Ubuntu 22.04+ / Fedora 39+ confirmed | Header, CI matrix |
+| 14 | Daily Draw default | The preset draws 2 items at a time (`drawCount` and `maxInHand` are both 2); unfinished items return at `00:00`. | §6.4, `PRESETS["daily-draw"]` |
+| 15 | The prototype after M1 | Move it to `docs/prototype/` and keep it as frozen history, with its own CI gate | Repo layout, CI, AGENTS.md §2 and §12 |
+| 16 | Automatic return (`autoReturnAt`) | Derived while reading, in the bucket's time zone; no events written | §5 `Bucket.timeZone`, §6.2; ADR 0001 |
 
 ## 18. Open questions
 
@@ -865,7 +869,5 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 |---|---|---|
 | 1 | What is the app's bundle identifier? | `apps/desktop/src-tauri/tauri.conf.json` uses the placeholder `com.example.buckets`. The identifier sets where the desktop app keeps its data and is used for macOS notarization and the updater, so pick a reverse-domain name you control before any release (M12 at the latest). |
 
-| 2 | What are the Daily Draw defaults? | The preset draws 3 items at a time and sends unfinished ones back at `00:00`. Both numbers are placeholders chosen during M1. |
-| 3 | When and how does `autoReturnAt` act? | M1 stores and validates the rule but nothing applies it. Returning items needs a clock tick in the user's time zone and a rule for which device writes the events when several are open. Decide before M10. |
 
 New questions go here as they come up during development (see AGENTS.md §11).

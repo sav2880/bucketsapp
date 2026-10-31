@@ -46,7 +46,7 @@ export interface BucketRules {
   requireAllSteps: boolean;
   /** Clear step progress when an item returns to the bucket. */
   resetStepsOnReturn: boolean;
-  /** Local time of day (`"HH:MM"`) when unresolved items return on their own. */
+  /** Local time of day (`"HH:MM"`, in `Bucket.timeZone`) when unresolved items return on their own. */
   autoReturnAt?: string;
   /** Whether every item gets a turn before any repeats. */
   noRepeat: "off" | "until-cycle-complete";
@@ -238,6 +238,11 @@ export interface Bucket {
   members: Record<string, Member>;
   /** Privacy options. */
   sharing: SharingSettings;
+  /**
+   * IANA zone for time-of-day rules such as `autoReturnAt`; UTC when absent. Optional so
+   * existing documents stay valid without a migration.
+   */
+  timeZone?: string;
   /** Items by id. */
   items: Record<string, Item>;
   /** Display order of item ids. */

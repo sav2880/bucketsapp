@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from "vitest";
-import { nextOccurrence, parseRRule, type RecurrenceRule } from "./rrule";
+import { nextLocalTime, nextOccurrence, parseRRule, type RecurrenceRule } from "./rrule";
 
 function rule(text: string): RecurrenceRule {
   const parsed = parseRRule(text);
@@ -170,5 +170,27 @@ describe("nextOccurrence", () => {
     expect(
       next("FREQ=MONTHLY;INTERVAL=12;BYMONTHDAY=30", "2026-10-30T00:00:00Z", "UTC", "2026-02-01"),
     ).toBeNull();
+  });
+});
+
+describe("nextLocalTime", () => {
+  it("finds the next time the wall clock reads the given time, strictly after the instant", () => {
+    const after = new Date("2026-10-12T13:00:00Z");
+    expect(nextLocalTime("00:00", "America/New_York", after)?.toISOString()).toBe(
+      "2026-10-13T04:00:00.000Z",
+    );
+    expect(nextLocalTime("09:00", "America/New_York", after)?.toISOString()).toBe(
+      "2026-10-13T13:00:00.000Z",
+    );
+    expect(nextLocalTime("09:00", "UTC", new Date("2026-10-12T09:00:00Z"))?.toISOString()).toBe(
+      "2026-10-13T09:00:00.000Z",
+    );
+  });
+
+  it("returns nothing for a malformed time or an unknown zone", () => {
+    const after = new Date("2026-10-12T13:00:00Z");
+    expect(nextLocalTime("24:00", "UTC", after)).toBeUndefined();
+    expect(nextLocalTime("9:00", "UTC", after)).toBeUndefined();
+    expect(nextLocalTime("09:00", "Nowhere/Land", after)).toBeUndefined();
   });
 });

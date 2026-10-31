@@ -113,9 +113,14 @@ export function parseRRule(text: string): { ok: true; rule: RecurrenceRule } | R
   return { ok: true, rule };
 }
 
+/** Building a formatter is slow and replays ask for the same few zones thousands of times. */
+const formatters = new Map<string, Intl.DateTimeFormat | undefined>();
+
 function formatter(timeZone: string): Intl.DateTimeFormat | undefined {
+  if (formatters.has(timeZone)) return formatters.get(timeZone);
+  let made: Intl.DateTimeFormat | undefined;
   try {
-    return new Intl.DateTimeFormat("en-US", {
+    made = new Intl.DateTimeFormat("en-US", {
       timeZone,
       hourCycle: "h23",
       year: "numeric",
@@ -125,8 +130,10 @@ function formatter(timeZone: string): Intl.DateTimeFormat | undefined {
       minute: "numeric",
     });
   } catch {
-    return undefined;
+    made = undefined;
   }
+  formatters.set(timeZone, made);
+  return made;
 }
 
 interface LocalTime {
@@ -278,4 +285,31 @@ export function minutesOfDay(timeZone: string, at: Date): number | undefined {
   if (!fmt) return undefined;
   const l = localTime(fmt, at.getTime());
   return l.hour * 60 + l.minute;
+}
+
+/**
+ * Finds the first time the wall clock in a zone reads `timeOfDay`, strictly after an instant.
+ *
+ * @param timeOfDay - Local time as `HH:MM`.
+ * @param timeZone - IANA zone.
+ * @param after - Only instants later than this count.
+ * @returns The instant, or `undefined` when `timeOfDay` or `timeZone` is not valid.
+ */
+export function nextLocalTime(timeOfDay: string, timeZone: string, after: Date): Date | undefined {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(timeOfDay);
+  if (!match) return undefined;
+  const result = nextOccurrence(
+    {
+      freq: "DAILY",
+      interval: 1,
+      byDay: [],
+      byMonthDay: [],
+      hour: Number(match[1]),
+      minute: Number(match[2]),
+    },
+    undefined,
+    timeZone,
+    after,
+  );
+  return result.ok ? (result.at ?? undefined) : undefined;
 }

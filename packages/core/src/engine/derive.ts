@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { durationToMs } from "../duration";
+import { nextLocalTime } from "../reminders/rrule";
 import type {
   Bucket,
   BucketBaseline,
@@ -102,6 +103,47 @@ export function seedStates(bucket: Bucket): Map<string, Working> {
   return states;
 }
 
+/** When unfinished items go back on their own (Daily Draw); see {@link autoReturnOf}. */
+export interface AutoReturn {
+  /** Local time of day as `HH:MM`. */
+  timeOfDay: string;
+  /** IANA zone that time is in. */
+  timeZone: string;
+  /** Whether going back uses up the item's turn, like `tossBackCountsAsDrawn`. */
+  countsAsDrawn: boolean;
+}
+
+/**
+ * Reads the automatic-return rule from a bucket.
+ *
+ * Nothing is written when items go back: the return is worked out while reading, so devices
+ * need no coordination and it works while every device is closed. The rule uses the bucket's
+ * `timeZone` (UTC if unset). An invalid zone turns the rule off rather than guess.
+ *
+ * @param bucket - The bucket.
+ * @returns The rule, or `undefined` when the bucket has none or its time zone is invalid.
+ */
+export function autoReturnOf(bucket: Bucket): AutoReturn | undefined {
+  const timeOfDay = bucket.rules.autoReturnAt;
+  if (timeOfDay === undefined) return undefined;
+  const timeZone = bucket.timeZone ?? "UTC";
+  if (nextLocalTime(timeOfDay, timeZone, new Date(0)) === undefined) return undefined;
+  return { timeOfDay, timeZone, countsAsDrawn: bucket.rules.tossBackCountsAsDrawn };
+}
+
+/** Sends back every held item whose next return time has passed (see {@link autoReturnOf}). */
+function applyAutoReturns(states: Map<string, Working>, rule: AutoReturn, until: number): void {
+  for (const s of states.values()) {
+    if (s.status !== "hand" || s.heldSince === null) continue;
+    const returnsAt = nextLocalTime(rule.timeOfDay, rule.timeZone, new Date(s.heldSince));
+    if (returnsAt === undefined || returnsAt.getTime() > until) continue;
+    s.status = "in";
+    s.heldBy = null;
+    s.heldSince = null;
+    if (!rule.countsAsDrawn) s.drawnThisCycle = s.prevDrawnThisCycle;
+  }
+}
+
 /**
  * Applies events, already in order, to a replay.
  *
@@ -110,12 +152,23 @@ export function seedStates(bucket: Bucket): Map<string, Working> {
  * - a draw of an item that is already in hand is ignored, so the earliest draw wins;
  * - finishing or tossing back an item that is not in hand is ignored, so repeats are harmless.
  *
+ * With an `autoReturn` rule, items whose return time has passed go back before each event is
+ * applied, and again at `until`, so an event never sees an item that should already be back.
+ *
  * @param states - Replay state from {@link seedStates}; changed in place.
  * @param events - Events in {@link sortEvents} order.
+ * @param autoReturn - Automatic-return rule, if the bucket has one.
+ * @param until - Also apply automatic returns up to this instant after the last event.
  */
-export function replayEvents(states: Map<string, Working>, events: readonly DrawEvent[]): void {
+export function replayEvents(
+  states: Map<string, Working>,
+  events: readonly DrawEvent[],
+  autoReturn?: AutoReturn,
+  until?: Date,
+): void {
   for (const event of events) {
     const at = Date.parse(event.at);
+    if (autoReturn) applyAutoReturns(states, autoReturn, at);
     if (event.kind === "cycle-reset") {
       for (const s of states.values()) s.drawnThisCycle = false;
       continue;
@@ -150,6 +203,7 @@ export function replayEvents(states: Map<string, Working>, events: readonly Draw
       }
     }
   }
+  if (autoReturn && until) applyAutoReturns(states, autoReturn, until.getTime());
 }
 
 /**
@@ -191,7 +245,7 @@ export function toBaseline(states: ReadonlyMap<string, Working>, through: Date):
  */
 export function deriveItems(bucket: Bucket, now: Date): ItemState[] {
   const states = seedStates(bucket);
-  replayEvents(states, sortEvents(bucket.events));
+  replayEvents(states, sortEvents(bucket.events), autoReturnOf(bucket), now);
   const nowMs = now.getTime();
   return [...states.values()].map((s) => ({
     item: s.item,

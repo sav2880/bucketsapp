@@ -2,7 +2,7 @@
 
 import { duration, durationToMs, type Duration } from "../duration";
 import type { Bucket } from "../model/types";
-import { replayEvents, seedStates, sortEvents, toBaseline } from "./derive";
+import { autoReturnOf, replayEvents, seedStates, sortEvents, toBaseline } from "./derive";
 
 /** How much full history to keep by default (plan.md §5). */
 export const DEFAULT_COMPACTION_HORIZON: Duration = duration(365, "days");
@@ -48,7 +48,7 @@ export function compactHistory(
   if (old.length === 0) return 0;
 
   const states = seedStates(bucket);
-  replayEvents(states, old);
+  replayEvents(states, old, autoReturnOf(bucket));
   bucket.baseline = toBaseline(states, cutoff);
 
   const remove = new Set(old.map((e) => e.id));

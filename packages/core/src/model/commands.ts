@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { BUCKET_SCHEMA_VERSION, LIBRARY_SCHEMA_VERSION } from "../migrations";
+import { minutesOfDay } from "../reminders/rrule";
 import { PRESETS, matchPreset, rulesEqual } from "./presets";
 import type {
   Bucket,
@@ -38,6 +39,7 @@ export type CommandRefusal =
   | "unknown-step"
   | "invalid-weight"
   | "invalid-rules"
+  | "invalid-time-zone"
   | "invalid-order";
 
 /** Outcome of a command: a value, or a typed refusal the UI can explain. */
@@ -75,6 +77,8 @@ export interface NewBucket {
   color?: string;
   /** Display name of the creator, who becomes the owner. */
   ownerName: string;
+  /** IANA zone for time-of-day rules; the app passes the creator's zone. UTC when omitted. */
+  timeZone?: string;
 }
 
 /**
@@ -105,6 +109,7 @@ export function createBucket(input: NewBucket, ctx: CommandContext): Bucket {
       },
     },
     sharing: { historyVisibility: "full", tossBackReasons: "shared" },
+    ...(input.timeZone === undefined ? {} : { timeZone: input.timeZone }),
     items: {},
     itemOrder: [],
     events: [],
@@ -382,4 +387,24 @@ export function createLibrary(displayName: string, ctx: Pick<CommandContext, "ma
 export function addBucketRef(library: Library, ref: BucketRef): void {
   if (!library.bucketOrder.includes(ref.bucketId)) library.bucketOrder.push(ref.bucketId);
   library.buckets[ref.bucketId] = { ...ref };
+}
+
+/**
+ * Sets the time zone that time-of-day rules (such as Daily Draw's return time) use.
+ *
+ * @param bucket - Bucket to change.
+ * @param timeZone - IANA zone, for example `"America/New_York"`.
+ * @param ctx - Who and when.
+ * @returns Success, or a refusal.
+ */
+export function setTimeZone(
+  bucket: Bucket,
+  timeZone: string,
+  ctx: CommandContext,
+): CommandResult<undefined> {
+  if (!canEdit(bucket.members[ctx.memberId]?.role)) return { ok: false, reason: "not-permitted" };
+  if (minutesOfDay(timeZone, ctx.now) === undefined)
+    return { ok: false, reason: "invalid-time-zone" };
+  bucket.timeZone = timeZone;
+  return { ok: true, value: undefined };
 }

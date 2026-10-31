@@ -15,6 +15,7 @@ import {
   setItemWeight,
   setRules,
   setStepDone,
+  setTimeZone,
   type CommandContext,
 } from "./commands";
 import { PRESETS } from "./presets";
@@ -308,5 +309,26 @@ describe("library", () => {
     addBucketRef(library, { ...ref, role: "viewer" });
     expect(library.bucketOrder).toEqual(["b1", "b2"]);
     expect(library.buckets["b1"]?.role).toBe("viewer");
+  });
+});
+
+describe("time zone", () => {
+  it("is unset by default and can be chosen when the bucket is created", () => {
+    expect(createBucket({ name: "A", ownerName: "Me" }, context())).not.toHaveProperty("timeZone");
+    expect(
+      createBucket({ name: "A", ownerName: "Me", timeZone: "Europe/Paris" }, context()).timeZone,
+    ).toBe("Europe/Paris");
+  });
+
+  it("can be changed by editors only, and only to a real zone", () => {
+    const { bucket, ctx: viewer } = bucketWithMember("viewer");
+    ok(setTimeZone(bucket, "Asia/Tokyo", context("me")));
+    expect(bucket.timeZone).toBe("Asia/Tokyo");
+    expect(setTimeZone(bucket, "Mars/Olympus", context("me"))).toEqual({
+      ok: false,
+      reason: "invalid-time-zone",
+    });
+    expect(setTimeZone(bucket, "UTC", viewer)).toEqual({ ok: false, reason: "not-permitted" });
+    expect(bucket.timeZone).toBe("Asia/Tokyo");
   });
 });

@@ -47,8 +47,13 @@ The `rrule` library reads the clock and has had time-zone defects, and AGENTS.md
 
 Both formats are at version 1 and nothing has shipped, so inventing a version 0 would be fiction. `createMigrator` provides the walk, the refusal of newer documents and the error reporting, tested with a synthetic three-version history. The first real schema change adds a step and bumps the version (AGENTS.md rule 10).
 
+### 9. Automatic return is derived, not written
+
+Daily Draw sends unfinished items back at a time of day. Writing return events would need a clock tick, a time zone and a rule for which device writes them when several are open, and nothing would happen while every device is closed. Instead `deriveItems` treats an item as returned once the first `autoReturnAt` after it was drawn has passed, using the new optional `Bucket.timeZone` (UTC when absent). There is nothing to coordinate between devices. The cost: history shows no explicit "returned" entry, and the rule reads the bucket's current rules because there is no event to snapshot them. Compaction replays the same rule, and a test checks derived state is unchanged by it. `timeZone` is optional, so no schema bump was needed.
+
 ## Consequences
 
 - `packages/sync` can apply the commands inside `change()` and must not edit documents any other way.
 - The first schema change must add a step to `migrateBucket` or `migrateLibrary`.
-- Two open questions remain in plan.md §18: the Daily Draw defaults and when `autoReturnAt` acts.
+- The Daily Draw preset (2 items at a time, unfinished items return at `00:00`) has no prototype equivalent; the maintainer chose the number (plan.md decision 14).
+- The prototype now lives in `docs/prototype/` as frozen history.

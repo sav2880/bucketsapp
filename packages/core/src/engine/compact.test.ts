@@ -171,6 +171,24 @@ describe("compactHistory", () => {
     expect(deriveItems(bucket, new Date(now)).map((s) => s.item.id)).toEqual(["i1", "i2"]);
   });
 
+  it("keeps automatic returns identical across a compaction", () => {
+    const bucket = makeBucket({ preset: "daily-draw", items: 4 });
+    bucket.timeZone = "America/New_York";
+    const end = simulate(
+      bucket,
+      11,
+      Array.from({ length: 30 }, (_, i) => ({
+        op: i % 3 === 2 ? ("done" as const) : ("draw" as const),
+        gapDays: 3,
+      })),
+    );
+    const original = clone(bucket);
+    expect(compactHistory(bucket, new Date(end), duration(30, "days"))).toBeGreaterThan(0);
+    for (const probe of [end, end + HOUR * 20, end + 10 * DAY]) {
+      expect(deriveItems(bucket, new Date(probe))).toEqual(deriveItems(original, new Date(probe)));
+    }
+  });
+
   it("derives the same state before and after compaction for any history", () => {
     fc.assert(
       fc.property(
@@ -183,7 +201,12 @@ describe("compactHistory", () => {
         ),
         fc.integer(),
         fc.constantFrom(30, 90, 200),
-        fc.constantFrom("rotation-pool" as const, "mystery-bag" as const, "grab-and-go" as const),
+        fc.constantFrom(
+          "rotation-pool" as const,
+          "mystery-bag" as const,
+          "grab-and-go" as const,
+          "daily-draw" as const,
+        ),
         (steps, seed, horizonDays, preset) => {
           const bucket = makeBucket({ preset, items: 4, rules: { maxInHand: 2, drawCount: 1 } });
           const end = simulate(bucket, seed, steps);
