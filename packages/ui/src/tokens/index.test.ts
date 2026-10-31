@@ -36,6 +36,15 @@ describe("design tokens", () => {
     expect(variables["--font"]).toContain("system-ui");
   });
 
+  it("includes the bucket art colors and motion timings", () => {
+    const variables = cssVariables("dark");
+    expect(variables["--art-face-ink"]).toBe("#1d1d1f");
+    expect(variables["--art-cheek"]).toBe("#ff8fa3");
+    expect(variables["--lid-ms"]).toBe("380ms");
+    expect(variables["--fade-ms"]).toBe("150ms");
+    expect(variables["--ease-fly"]).toContain("cubic-bezier");
+  });
+
   it("only uses colors that are valid hex or rgba values", () => {
     for (const value of [...Object.values(lightColors), ...Object.values(darkColors)]) {
       expect(value).toMatch(/^(#[0-9a-f]{6}|rgba\(\d+, \d+, \d+, [\d.]+\))$/);

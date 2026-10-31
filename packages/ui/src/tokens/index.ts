@@ -185,6 +185,66 @@ export const spacing = {
 export const motion = {
   /** Easing for most movement. */
   easeOut: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+  /** A slip leaving the bucket: quick off the mark, soft landing. */
+  easeFly: "cubic-bezier(0.3, 0.7, 0.2, 1)",
+  /** A card going back to the bucket or the done pile. */
+  easeReturn: "cubic-bezier(0.4, 0, 0.2, 1)",
+  /** Durations in milliseconds, from the prototype (plan.md §12.3). */
+  ms: {
+    /** The bucket rocking before a draw. */
+    wobble: 420,
+    /** The bucket squashing when something lands in it. */
+    plop: 360,
+    /** The side-to-side "no" of a refused draw. */
+    shake: 360,
+    /** A slip flying from the bucket to its card. */
+    draw: 780,
+    /** The card settling after it lands. */
+    settle: 160,
+    /** A card flying back to the bucket or the done pile. */
+    return: 600,
+    /** The done pile pulsing when a slip arrives. */
+    pilePulse: 260,
+    /** First half of the Mystery Bag flip. */
+    flipOut: 170,
+    /** Second half of the Mystery Bag flip. */
+    flipIn: 220,
+    /** The simple fade that replaces movement when motion is reduced. */
+    fade: 150,
+    /** The lid sliding on or off. */
+    lid: 380,
+    /** The lid's fade, a little quicker than its slide. */
+    lidFade: 250,
+    /** How long the surprised face stays after a draw. */
+    moodWow: 1000,
+    /** How long the happy face stays after finishing an item. */
+    moodHappy: 1400,
+    /** How long the "no" face stays after a refused draw. */
+    moodNo: 900,
+  },
+} as const;
+
+/**
+ * Colors the bucket drawing uses that don't change with the theme or the bucket's color.
+ * Shades of the bucket's own color are mixed from `--enamel` in CSS.
+ */
+export const art = {
+  /** Eyes and mouth. */
+  faceInk: "#1d1d1f",
+  /** Cheeks. */
+  cheek: "#ff8fa3",
+  /** The two bands around the body. */
+  ring: "rgba(0, 0, 0, 0.12)",
+  /** The highlight down the side. */
+  sheen: "rgba(255, 255, 255, 0.32)",
+  /** Hairline around a paper slip. */
+  outline: "rgba(0, 0, 0, 0.14)",
+  /** What the inside of the bucket is darkened toward. */
+  shade: "#15151a",
+  /** What highlights are lightened toward. */
+  light: "#ffffff",
+  /** What shadows are darkened toward. */
+  dark: "#000000",
 } as const;
 
 /** System font stack: SF on macOS, Segoe UI Variable on Windows, the system font elsewhere. */
@@ -221,6 +281,13 @@ export function cssVariables(theme: Theme): Record<string, string> {
   variables["--toolbar-h"] = sizes.toolbarH;
   Object.assign(variables, bucketColorVariables("accent", theme));
   variables["--ease-out"] = motion.easeOut;
+  variables["--ease-fly"] = motion.easeFly;
+  variables["--ease-return"] = motion.easeReturn;
+  variables["--lid-ms"] = `${String(motion.ms.lid)}ms`;
+  variables["--lid-fade-ms"] = `${String(motion.ms.lidFade)}ms`;
+  variables["--fade-ms"] = `${String(motion.ms.fade)}ms`;
+  for (const [name, value] of Object.entries(art))
+    variables[cssVariableName(`art${name.charAt(0).toUpperCase()}${name.slice(1)}`)] = value;
   variables["--font"] = fontStack;
   return variables;
 }

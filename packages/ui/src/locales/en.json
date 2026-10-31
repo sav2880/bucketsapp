@@ -40,6 +40,8 @@
   "bucket.timeZone": "Time zone",
   "bucket.timeZoneInvalid": "That isn't a time zone Buckets knows.",
   "draw.button": "Draw",
+  "bucket.art.one": "{name}, {count} item ready to draw",
+  "bucket.art.other": "{name}, {count} items ready to draw",
   "draw.hint.locked": "Finish or toss back {titles} before drawing again.",
   "draw.hint.handFull": "Your hand is full. Finish or toss back an item first.",
   "draw.hint.empty": "Nothing to draw. Add an item first.",

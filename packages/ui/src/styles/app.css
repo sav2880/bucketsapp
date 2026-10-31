@@ -83,6 +83,154 @@ select {
   box-shadow: none;
 }
 
+/* ---------- The bucket drawing (shell/bucket-art.tsx) ---------- */
+.bk-art {
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+  overflow: visible;
+}
+
+.bk-shadow {
+  fill: var(--art-shadow);
+}
+
+/* Animations rock and squash the whole pail from its base. */
+.bk-body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.bk-handle {
+  fill: none;
+  stroke: var(--handle);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.bk-interior {
+  fill: color-mix(in srgb, var(--enamel) 38%, var(--art-shade));
+}
+
+.bk-rim {
+  fill: none;
+  stroke: color-mix(in srgb, var(--enamel) 62%, var(--art-light));
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.bk-g-light {
+  stop-color: color-mix(in srgb, var(--enamel) 72%, var(--art-light));
+}
+
+.bk-g-mid {
+  stop-color: var(--enamel);
+}
+
+.bk-g-dark {
+  stop-color: color-mix(in srgb, var(--enamel) 78%, var(--art-dark));
+}
+
+.bk-ring {
+  fill: none;
+  stroke: var(--art-ring);
+  stroke-width: 3;
+}
+
+.bk-sheen {
+  fill: none;
+  stroke: var(--art-sheen);
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.bk-rivet {
+  fill: color-mix(in srgb, var(--enamel) 58%, var(--art-dark));
+}
+
+.bk-slip {
+  fill: var(--paper);
+  stroke: var(--art-outline);
+  stroke-width: 1;
+}
+
+.bk-resting {
+  fill: color-mix(in srgb, var(--paper) 62%, var(--text-2));
+}
+
+.bk-slip-band {
+  fill: var(--enamel);
+}
+
+.bk-slips {
+  transition: transform var(--lid-ms) var(--ease-out);
+}
+
+/* With the lid on, the slips settle down so none poke through it. */
+.bk-lid-on .bk-slips {
+  transform: translateY(16px);
+}
+
+.bk-face {
+  opacity: 0.82;
+}
+
+.bk-face-part {
+  fill: var(--art-face-ink);
+}
+
+.bk-face-line {
+  fill: none;
+  stroke: var(--art-face-ink);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.bk-cheek {
+  fill: var(--art-cheek);
+  opacity: 0.45;
+}
+
+.bk-lid {
+  opacity: 0;
+  transform: translateY(-46px);
+  transition:
+    transform var(--lid-ms) var(--ease-out),
+    opacity var(--lid-fade-ms);
+  pointer-events: none;
+}
+
+.bk-lid.on {
+  opacity: 1;
+  transform: none;
+}
+
+.bk-lid-top {
+  fill: var(--enamel);
+}
+
+.bk-lid-edge {
+  fill: color-mix(in srgb, var(--enamel) 75%, var(--art-dark));
+}
+
+.bk-lid-knob {
+  fill: color-mix(in srgb, var(--enamel) 60%, var(--art-dark));
+}
+
+.bk-lid-shine {
+  fill: var(--art-sheen);
+}
+
+/* Reduced motion (the system setting or the in-app one): nothing slides, the lid just fades. */
+.bk-art[data-reduced] .bk-slips {
+  transition: none;
+}
+
+.bk-art[data-reduced] .bk-lid {
+  transform: none;
+  transition: opacity var(--fade-ms) linear !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

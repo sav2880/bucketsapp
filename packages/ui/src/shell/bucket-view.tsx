@@ -3,10 +3,11 @@
 import { canDraw, checkDraw, deriveItems, type Bucket, type DrawRefusal } from "@buckets/core";
 import { useMemo, useState, type ReactElement, type ReactNode, type RefObject } from "react";
 import { useActions, useEnvironment, useNow } from "../app-environment";
-import { t } from "../i18n";
+import { t, tp } from "../i18n";
 import { useAnnounce } from "../live-region";
 import { useBucket } from "../library/library-provider";
 import { BucketArt } from "./bucket-art";
+import { bucketVisual } from "./bucket-art-model";
 import { describeDrawRefusal, describeResolveRefusal } from "./draw-messages";
 import { ItemList } from "./item-list";
 import { HandCard } from "./hand-card";
@@ -73,6 +74,9 @@ function BucketPane({
     }).format(new Date(iso));
   const hint = refusal === undefined ? "" : describeDrawRefusal(refusal, when);
 
+  const inCount = states.filter((s) => s.status === "in").length;
+  const restingCount = states.filter((s) => s.status === "cooling").length;
+  const visual = bucketVisual(refusal);
   const inHand = states.filter((s) => s.status === "hand");
   const mine = inHand.filter((s) => s.heldBy === environment.memberId);
   const others = inHand.filter((s) => s.heldBy !== environment.memberId);
@@ -162,7 +166,13 @@ function BucketPane({
       >
         {role === "viewer" && <p style={{ color: "var(--text-2)" }}>{t("bucket.readOnly")}</p>}
         <div style={{ display: "grid", justifyItems: "center", gap: "var(--space-2)" }}>
-          <BucketArt />
+          <BucketArt
+            inCount={inCount}
+            restingCount={restingCount}
+            lidOn={visual.lidOn}
+            mood={visual.mood}
+            label={tp("bucket.art", inCount, { name: bucket.name })}
+          />
           <button
             type="button"
             onClick={drawNow}
