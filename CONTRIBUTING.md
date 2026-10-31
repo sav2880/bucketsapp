@@ -11,7 +11,7 @@ pnpm install
 pnpm check
 ```
 
-`pnpm check` is the quality gate. It runs lint, a format check, type checking, the terminology, SPDX and license checks, the tests with coverage thresholds, and the Rust checks. It must pass before you open a pull request. If you change `prototype/`, also run `cd prototype && npm run check`.
+`pnpm check` is the quality gate. It runs lint, a format check, type checking, the terminology, SPDX and license checks, the tests with coverage thresholds, and the Rust checks. It must pass before you open a pull request. If you change `docs/prototype/`, also run `cd docs/prototype && npm run check`.
 
 ## Rules that trip people up
 

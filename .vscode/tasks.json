@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "options": { "cwd": "${workspaceFolder}/prototype" },
+  "options": { "cwd": "${workspaceFolder}/docs/prototype" },
   "tasks": [
     {
       "label": "Prototype: install",

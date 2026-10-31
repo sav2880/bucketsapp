@@ -18,7 +18,7 @@ Open `dist/buckets-prototype.html` in any modern browser. It's fully self-contai
 
 | File | What it is |
 |---|---|
-| `engine.js` | Pure draw engine (plan.md §6). No DOM, clock or global randomness. **Reference for `packages/core` in M1.** |
+| `engine.js` | Pure draw engine (plan.md §6). No DOM, clock or global randomness. **Ported to `packages/core` in M1.** |
 | `engine.test.js` | 16 unit tests: the 10-systems example, fairness (chi-square), weighting, aging, resting time, rounds, toss-back rules |
 | `app.js` | UI layer: rendering, animations, sheets, resizable panes and columns, shortcuts |
 | `styles.css` | Light/dark tokens, layout, bucket art, cards, inspector |

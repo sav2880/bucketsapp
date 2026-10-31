@@ -18,7 +18,7 @@ buckets/
 ├─ .editorconfig  .gitattributes  .gitignore  .nvmrc
 ├─ docs/
 │  └─ claude-code-setup.md   This file
-└─ prototype/             Clickable HTML prototype with its engine, tests and build script
+└─ docs/prototype/        Clickable HTML prototype with its engine, tests and build script
 ```
 
 The monorepo described in AGENTS.md §2 (`apps/`, `packages/`, `server/`) doesn't exist yet. Building it is milestone M0, and it's the first thing to ask Claude Code to do (see section 8).
@@ -69,13 +69,13 @@ The `-s` adds the `Signed-off-by:` line the project requires (DCO; see README.md
 This proves Node and npm work before Claude Code gets involved.
 
 ```bash
-cd prototype
+cd docs/prototype
 npm ci
 npm run check     # expect: lint clean, 16 engine tests and 6 smoke tests passing
 cd ..
 ```
 
-Open `prototype/dist/buckets-prototype.html` in a browser to see the prototype.
+Open `docs/prototype/dist/buckets-prototype.html` in a browser to see the prototype.
 
 ## 5. Install Claude Code
 
@@ -143,7 +143,7 @@ Then ask a quick question to make sure the rules landed:
 In two sentences: what's the quality gate right now, and what milestone comes next?
 ```
 
-Expected answer: `cd prototype && npm run check`, and M0 (repo foundations).
+Expected answer: `cd docs/prototype && npm run check`, and M0 (repo foundations).
 
 ### How the files fit together
 
@@ -160,7 +160,7 @@ Expected answer: `cd prototype && npm run check`, and M0 (repo foundations).
 ### In the Claude panel
 
 - Type a request and Claude proposes edits. Review each diff and accept or reject it.
-- Mention files with `@`, for example `@plan.md` or `@prototype/engine.js`. Text you select in the editor is shared with Claude automatically.
+- Mention files with `@`, for example `@plan.md` or `@docs/prototype/engine.js`. Text you select in the editor is shared with Claude automatically.
 - Switch permission modes with the mode indicator in the panel. Use **plan mode** before big changes: Claude writes a plan for you to approve before it touches any files. CLAUDE.md asks for plan mode on data-model, engine, sync and sharing work.
 
 ### In the terminal
@@ -197,7 +197,7 @@ Start in plan mode for the first one. Paste these one at a time and review each 
 **1. Orientation (no changes)**
 
 ```
-Read plan.md, AGENTS.md and prototype/README.md. Summarise the architecture
+Read plan.md, AGENTS.md and docs/prototype/README.md. Summarise the architecture
 in ten bullet points and list anything in plan.md §15 M0 that is ambiguous
 or that you'd need me to decide. Don't change any files.
 ```
@@ -208,14 +208,14 @@ or that you'd need me to decide. Don't change any files.
 Plan milestone M0 from plan.md §15: the pnpm monorepo layout in AGENTS.md §2,
 TypeScript strict config, ESLint and Prettier, Vitest, the terminology check
 script, SPDX headers, the license check, and a `pnpm check` that runs all of
-it. Keep prototype/ working as-is. Show me the plan before writing files.
+it. Keep docs/prototype/ working as-is. Show me the plan before writing files.
 ```
 
 **3. Milestone M1: draw engine**
 
 ```
-Port prototype/engine.js to packages/core in TypeScript, following AGENTS.md
-§4 and plan.md §6. Port every test in prototype/engine.test.js to Vitest
+Port docs/prototype/engine.js to packages/core in TypeScript, following AGENTS.md
+§4 and plan.md §6. Port every test in docs/prototype/engine.test.js to Vitest
 first and confirm they fail, then implement until they pass. Add the
 fast-check invariants listed in AGENTS.md §6.
 ```
@@ -236,6 +236,6 @@ After each milestone, ask Claude to update plan.md and README.md if anything cha
 | The extension doesn't appear after installing | Run **Developer: Reload Window**, or restart VS Code. |
 | Claude ignores the project rules | Run `/context` and check CLAUDE.md is listed. Make sure you opened the `buckets` folder itself, not a parent folder. |
 | Claude asks permission for every npm command | Trust the folder when Claude Code asks; shared allow rules wait for that. Check `/config` too. |
-| `npm ci` fails | Check `node --version` is 20 or newer. Delete `prototype/node_modules` and retry. |
-| ESLint shows nothing in the editor | Install the ESLint extension and run `npm ci` in `prototype/`. The workspace settings point ESLint at that folder. |
+| `npm ci` fails | Check `node --version` is 20 or newer. Delete `docs/prototype/node_modules` and retry. |
+| ESLint shows nothing in the editor | Install the ESLint extension and run `npm ci` in `docs/prototype/`. The workspace settings point ESLint at that folder. |
 | Diffs from a terminal session don't open in VS Code | Run `/ide` inside the session to connect to the editor. |

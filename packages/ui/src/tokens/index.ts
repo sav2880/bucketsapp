@@ -4,7 +4,7 @@
  * Design tokens (AGENTS.md §7). Components use these, never raw hex or pixel values.
  *
  * Colors, radii, the easing curve and the font stack come from the clickable prototype
- * (`prototype/styles.css`), so M2 starts from what was already tried. The spacing scale
+ * (`docs/prototype/styles.css`), so M2 starts from what was already tried. The spacing scale
  * is new: the prototype had no spacing tokens.
  */
 

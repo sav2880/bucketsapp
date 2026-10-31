@@ -90,20 +90,20 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  # The prototype is outside the pnpm workspace and keeps its own gate until M1.
+  # The archived prototype (docs/prototype) is outside the pnpm workspace and keeps its own gate.
   prototype:
     name: prototype check
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: prototype
+        working-directory: docs/prototype
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: prototype/package-lock.json
+          cache-dependency-path: docs/prototype/package-lock.json
       - run: npm ci
       - run: npm run check
 

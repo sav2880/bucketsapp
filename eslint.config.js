@@ -47,7 +47,7 @@ export default tseslint.config(
       "**/coverage/**",
       "**/target/**",
       "**/src-tauri/gen/**",
-      "prototype/**",
+      "docs/prototype/**",
     ],
   },
   js.configs.recommended,

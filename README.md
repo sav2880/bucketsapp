@@ -6,7 +6,7 @@ Buckets holds the things you want to do: games to play, systems to maintain, cho
 
 > **Status: pre-alpha.** Milestone M0 (repo foundations) is complete, and the M1 draw engine is built in `packages/core` (no user interface yet; the app window is still empty). See [plan.md](plan.md). Commands marked *not yet* below need a later milestone.
 >
-> The feel of the app is in the clickable prototype in [`prototype/`](prototype/README.md): `cd prototype && npm ci && npm run check`, then open `prototype/dist/buckets-prototype.html`.
+> The feel of the app is in the clickable prototype in [`docs/prototype/`](docs/prototype/README.md): `cd docs/prototype && npm ci && npm run check`, then open `docs/prototype/dist/buckets-prototype.html`.
 
 ## Bucket types
 
@@ -137,7 +137,7 @@ server/           Self-hostable sync server
 e2e/              Playwright tests
 scripts/          Repo checks (terminology, SPDX headers, licenses)
 docs/             Architecture notes and design assets
-prototype/        Clickable HTML prototype (plain JS; reference for M1)
+docs/prototype/   Archived clickable HTML prototype (plain JS; its engine was ported in M1)
 ```
 
 ## Documentation

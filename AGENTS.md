@@ -29,7 +29,7 @@ This file tells AI agents (and humans) how to work in the Buckets repository. Re
 | `apps/desktop` | Tauri entry; Rust in `src-tauri/` | Keep Rust thin: menus, window effects, plugins |
 | `server/` | Sync server | Dockerized |
 | `e2e/` | Playwright | Use `data-testid`, not CSS selectors |
-| `prototype/` | Clickable HTML prototype (plain JS, npm) | Reference behaviour for M1; see §12 |
+| `docs/prototype/` | Archived clickable HTML prototype (plain JS, npm) | Its engine was ported to `core` in M1; see §12 |
 
 **Import direction:** apps → ui → (storage, sync, export) → (core, crypto). `storage` and `sync` may import `core` and `crypto`; `export` may import `core`. Nothing imports from an app. `core` and `crypto` import nothing internal. ESLint enforces this per package (`eslint.config.js`).
 
@@ -148,8 +148,7 @@ Don't guess on product questions. Add the question to plan.md §18 (Open questio
 
 - **The monorepo in §2 is partly in place.** M0 slice 1 added the pnpm workspace with empty package stubs, strict TypeScript, ESLint, Prettier, Vitest and `pnpm check`. Slice 3 added design tokens (`packages/ui/src/tokens`), a placeholder icon (`docs/design/app-icon.svg`) and the CI workflow. Slice 2 added the empty Tauri 2 window (`apps/desktop/src-tauri`), so `pnpm test:rust` now runs `cargo fmt --check`, `clippy -D warnings`, `cargo test` and `cargo deny check`; it needs Rust and `cargo-deny` installed. M0 is complete: CI is green on all three OSes and the window has been opened by hand on each one.
 - **M1 is built in `packages/core`** (see plan.md §15 and `docs/adr/0001-core-engine-decisions.md`): model, presets, commands, derived state, `draw` and `resolve`, `nextFireTimes`, history compaction and migrations. Commands change the bucket they are given so they can run inside an Automerge `change()`; everything else is pure. Test helpers live in `packages/core/test/` (excluded from coverage). `pnpm --filter @buckets/core test` runs just that package.
-- **Two gates exist:** `pnpm check` at the root for the workspace, and `cd prototype && npm run check` for the prototype (ESLint, engine unit tests, build, jsdom smoke tests). `prototype/` is outside the pnpm workspace; run both when you touch both.
-- `prototype/` is plain JavaScript with JSDoc, not TypeScript. It's exempt from the TypeScript and package rules above, but rules 1, 3, 4, 5, 6 and 9 still apply.
-- `prototype/engine.js` was the reference for plan.md §6 and has been ported to `packages/core`, with every scenario from `engine.test.js`. The prototype is unchanged; the differences are listed in the ADR.
-- Once M1 is accepted, either delete `prototype/` or move it to `docs/prototype/`. Ask the maintainer which.
+- **Two gates exist:** `pnpm check` at the root for the workspace, and `cd docs/prototype && npm run check` for the archived prototype (ESLint, engine unit tests, build, jsdom smoke tests). `docs/prototype/` is outside the pnpm workspace; run both when you touch both.
+- `docs/prototype/` is plain JavaScript with JSDoc, not TypeScript. It's exempt from the TypeScript and package rules above, but rules 1, 3, 4, 5, 6 and 9 still apply.
+- `docs/prototype/engine.js` was the reference for plan.md §6 and has been ported to `packages/core`, with every scenario from `engine.test.js`. The prototype was moved there unchanged after M1; the differences from `core` are listed in the ADR. Treat it as frozen history: change it only to keep its own gate green.
 

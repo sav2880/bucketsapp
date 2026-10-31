@@ -3,7 +3,7 @@ dist
 coverage
 target
 pnpm-lock.yaml
-prototype
+docs/prototype
 # Hand-formatted docs and agent settings: Prettier would rewrite their tables and lists.
 *.md
 .claude
