@@ -90,6 +90,28 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  # M2: the web app in a real browser, on the three engines plan.md §14 names.
+  e2e:
+    name: e2e (Playwright)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install browsers and their system libraries
+        run: pnpm exec playwright install --with-deps chromium webkit firefox
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results
+          retention-days: 7
+
   # The archived prototype (docs/prototype) is outside the pnpm workspace and keeps its own gate.
   prototype:
     name: prototype check

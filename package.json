@@ -18,6 +18,9 @@
     "test:coverage": "vitest run --coverage",
     "dev:desktop": "pnpm --filter @buckets/desktop tauri dev",
     "build:desktop": "pnpm --filter @buckets/desktop tauri build",
+    "dev:web": "pnpm --filter @buckets/web dev",
+    "build:web": "pnpm --filter @buckets/web build",
+    "test:e2e": "pnpm build:web && playwright test --config e2e/playwright.config.ts",
     "check:terminology": "tsx scripts/check-terminology.ts",
     "check:spdx": "tsx scripts/check-spdx.ts",
     "check:licenses": "tsx scripts/check-licenses.ts",
@@ -26,6 +29,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.61.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",

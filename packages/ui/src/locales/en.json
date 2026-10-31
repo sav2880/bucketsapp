@@ -1,6 +1,7 @@
 {
   "app.name": "Buckets",
   "columns.resize": "Resize column {name}",
+  "profile.defaultName": "Me",
   "library.loading": "Opening your buckets…",
   "library.saveFailed": "Couldn't save your changes: {message}",
   "library.newerVersion": "This bucket was made by a newer version of Buckets, so it can't be opened here.",

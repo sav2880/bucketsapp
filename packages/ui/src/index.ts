@@ -53,6 +53,7 @@ export {
   type AppEnvironment,
   type EnvironmentProviderProps,
 } from "./app-environment";
+export { AppRoot, type AppRootProps } from "./app-root";
 export { Shell } from "./shell/shell";
 export { shortcutOf, useShortcuts, type ShortcutBindings } from "./shell/use-shortcuts";
 

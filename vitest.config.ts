@@ -42,6 +42,7 @@ export default defineConfig({
         "scripts/run-rust-checks.ts",
         // Browser entry point: only wires App into the DOM.
         "apps/desktop/src/main.tsx",
+        "apps/web/src/main.tsx",
       ],
       // plan.md §14: core and crypto ≥ 95% lines; everything else ≥ 80%.
       thresholds: {
