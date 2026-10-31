@@ -26,3 +26,7 @@ window.ResizeObserver = class {
   unobserve(): void {}
   disconnect(): void {}
 };
+
+// jsdom has no object URLs; pictures use them for previews.
+URL.createObjectURL = () => "blob:test";
+URL.revokeObjectURL = () => undefined;

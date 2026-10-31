@@ -4,6 +4,9 @@ import {
   applyEvents,
   createBucket,
   draw,
+  prepareMove,
+  receiveMovedItem,
+  removeItem,
   resolve,
   type Bucket,
   type CommandContext,
@@ -13,7 +16,7 @@ import {
   type ResolveResult,
   type Rng,
 } from "@buckets/core";
-import type { SettingsStore } from "@buckets/storage";
+import type { BlobStore, SettingsStore } from "@buckets/storage";
 import {
   createContext,
   useContext,
@@ -23,6 +26,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
+import type { ImageCodec } from "./images/process-image";
 import { useLibrary, useLibraryStore } from "./library/library-provider";
 
 /**
@@ -44,6 +48,10 @@ export interface AppEnvironment {
   rng: Rng;
   /** Makes fresh unique ids. */
   makeId: () => string;
+  /** Decodes and re-encodes pictures; defaults to the browser's own (tests supply a fake). */
+  imageCodec?: ImageCodec | undefined;
+  /** Where picture bytes are kept. */
+  blobs: BlobStore;
   /** Where per-device preferences such as pane sizes are kept. */
   settings?: SettingsStore | undefined;
 }
@@ -152,6 +160,16 @@ export interface Actions {
    */
   createBucket(input: Omit<NewBucket, "ownerName">): string;
   /**
+   * Moves an item to another bucket: adds it there first, then removes it here, so a crash
+   * between the two leaves a copy rather than losing it (see `prepareMove`).
+   *
+   * @param sourceId - The bucket it is in.
+   * @param itemId - The item.
+   * @param destinationId - The bucket to move it to.
+   * @returns The item's id in the destination, or why it could not move.
+   */
+  moveItem(sourceId: string, itemId: string, destinationId: string): CommandResult<string>;
+  /**
    * Draws from a bucket for the current member.
    *
    * @param bucketId - The bucket.
@@ -206,6 +224,21 @@ export function useActions(): Actions {
           addedAt: ctx.now.toISOString(),
         });
         return bucket.id;
+      },
+      moveItem(sourceId, itemId, destinationId) {
+        const source = store.getState().buckets[sourceId];
+        if (source === undefined || sourceId === destinationId)
+          return { ok: false, reason: "unknown-bucket" };
+        const prepared = prepareMove(source, itemId, context());
+        if (!prepared.ok) return prepared;
+        const received = store.updateBucket(destinationId, (bucket) =>
+          receiveMovedItem(bucket, prepared.value, context()),
+        );
+        if (!received.ok) return received;
+        const removed = store.updateBucket(sourceId, (bucket) =>
+          removeItem(bucket, itemId, context()),
+        );
+        return removed.ok ? received : removed;
       },
       draw(bucketId) {
         let outcome: DrawResult = refused;

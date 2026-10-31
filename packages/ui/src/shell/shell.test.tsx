@@ -83,7 +83,7 @@ describe("drawing", () => {
     const { store } = await renderShell();
     await makeBucket("Games");
     await addItems("Hades", "Celeste");
-    expect(screen.getByRole("button", { name: "Show details for Hades" })).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Title of Hades" })).toBeTruthy();
 
     await userEvent.click(screen.getByTestId("draw"));
     await announced(/^Drew (Hades|Celeste)\.$/);
@@ -171,7 +171,7 @@ describe("details", () => {
     const { store } = await renderShell();
     await makeBucket("Games");
     await addItems("Hades");
-    await userEvent.click(screen.getByRole("button", { name: "Show details for Hades" }));
+    await userEvent.click(screen.getByRole("textbox", { name: "Title of Hades" }));
 
     const inspector = await screen.findByTestId("item-inspector");
     const title = within(inspector).getByRole("textbox", { name: "Title" });
@@ -322,8 +322,6 @@ describe("inserted items", () => {
         ),
       );
     });
-    expect(
-      await screen.findByRole("button", { name: "Show details for From elsewhere" }),
-    ).toBeTruthy();
+    expect(await screen.findByRole("textbox", { name: "Title of From elsewhere" })).toBeTruthy();
   });
 });

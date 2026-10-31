@@ -2,7 +2,7 @@
 
 import type { ReactElement } from "react";
 import { useEnvironment } from "../app-environment";
-import { t } from "../i18n";
+import { t, tp } from "../i18n";
 import { useBucket } from "../library/library-provider";
 import { BucketInspector } from "./bucket-inspector";
 import { ItemInspector } from "./item-inspector";
@@ -16,6 +16,8 @@ export interface InspectorProps {
   bucketId: string;
   /** The selected item, if any. */
   itemId: string | undefined;
+  /** How many items are selected; with more than one there are no item details to show. */
+  selectedCount: number;
   /** Which kind of details to show. Items fall back to the bucket when none is selected. */
   mode: InspectorMode;
   /** Called when the user switches between item and bucket details. */
@@ -35,6 +37,7 @@ export interface InspectorProps {
 export function Inspector({
   bucketId,
   itemId,
+  selectedCount,
   mode,
   onModeChange,
   onItemDeleted,
@@ -83,7 +86,9 @@ export function Inspector({
           {t("inspector.bucket")}
         </button>
       </div>
-      {showItem && itemId !== undefined ? (
+      {selectedCount > 1 && mode === "item" ? (
+        <p>{tp("inspector.multiple", selectedCount)}</p>
+      ) : showItem && itemId !== undefined ? (
         <ItemInspector
           bucket={bucket}
           itemId={itemId}

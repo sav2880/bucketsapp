@@ -2,6 +2,7 @@
 
 import { createLibrary, createSeededRng, type MemberRole } from "@buckets/core";
 import {
+  createBlobStore,
   createMemoryStorage,
   createSettingsStore,
   openLibraryStore,
@@ -10,6 +11,7 @@ import {
 } from "@buckets/storage";
 import { render } from "@testing-library/react";
 import { EnvironmentProvider, type AppEnvironment } from "../src/app-environment";
+import type { ImageCodec } from "../src/images/process-image";
 import { LiveRegionProvider } from "../src/live-region";
 import { LibraryProvider } from "../src/library/library-provider";
 import { Shell } from "../src/shell/shell";
@@ -52,7 +54,12 @@ export function setViewportWidth(width: number): void {
  * @returns The pieces, for the test to drive.
  */
 export async function renderShell(
-  options: { width?: number; adapter?: StorageAdapter; role?: MemberRole } = {},
+  options: {
+    width?: number;
+    adapter?: StorageAdapter;
+    role?: MemberRole;
+    imageCodec?: ImageCodec;
+  } = {},
 ): Promise<ShellHarness> {
   setViewportWidth(options.width ?? 1200);
   const adapter = options.adapter ?? createMemoryStorage();
@@ -72,6 +79,8 @@ export async function renderShell(
     now: () => new Date(clock.ms),
     rng: createSeededRng(7),
     makeId,
+    blobs: createBlobStore(adapter),
+    imageCodec: options.imageCodec,
     settings: createSettingsStore(adapter),
   };
   render(

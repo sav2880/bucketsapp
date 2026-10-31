@@ -3,7 +3,9 @@
 import { deriveItems } from "@buckets/core";
 import type { ReactElement } from "react";
 import { useLibrary } from "../library/library-provider";
-import { useNow } from "../app-environment";
+import { useActions, useNow } from "../app-environment";
+import { useAnnounce } from "../live-region";
+import { ITEMS_DRAG_TYPE, type ItemsDragPayload } from "./item-list";
 import { t, tp } from "../i18n";
 import { iconGlyph } from "./icons";
 
@@ -26,6 +28,27 @@ export interface SidebarProps {
 export function Sidebar({ selectedId, onSelect, onNewBucket }: SidebarProps): ReactElement {
   const { library, buckets, problems } = useLibrary();
   const now = useNow();
+  const actions = useActions();
+  const announce = useAnnounce();
+
+  const dropOn = (destinationId: string, raw: string): void => {
+    const payload = JSON.parse(raw) as ItemsDragPayload;
+    if (payload.bucketId === destinationId) return;
+    const name = buckets[destinationId]?.name ?? "";
+    let moved = 0;
+    for (const id of payload.ids) {
+      const title = buckets[payload.bucketId]?.items[id]?.title ?? "";
+      const result = actions.moveItem(payload.bucketId, id, destinationId);
+      if (result.ok) moved += 1;
+      else if (result.reason === "item-in-hand" || result.reason === "item-has-child-bucket")
+        announce(t(`list.moveRefused.${result.reason}`, { title }));
+      else announce(t("list.moveRefused.other", { title }));
+    }
+    if (moved > 0) {
+      const first = buckets[payload.bucketId]?.items[payload.ids[0] ?? ""]?.title ?? "";
+      announce(tp("list.moved", moved, { title: first, bucket: name }));
+    }
+  };
   return (
     <nav
       aria-label={t("shell.buckets")}
@@ -64,6 +87,14 @@ export function Sidebar({ selectedId, onSelect, onNewBucket }: SidebarProps): Re
                   onSelect(id);
                 }}
                 data-testid={`bucket-${id}`}
+                onDragOver={(e) => {
+                  if (e.dataTransfer.types.includes(ITEMS_DRAG_TYPE)) e.preventDefault();
+                }}
+                onDrop={(e) => {
+                  if (!e.dataTransfer.types.includes(ITEMS_DRAG_TYPE)) return;
+                  e.preventDefault();
+                  dropOn(id, e.dataTransfer.getData(ITEMS_DRAG_TYPE));
+                }}
                 style={{
                   width: "100%",
                   display: "flex",

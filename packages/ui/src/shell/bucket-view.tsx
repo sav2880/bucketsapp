@@ -7,8 +7,8 @@ import { t } from "../i18n";
 import { useAnnounce } from "../live-region";
 import { useBucket } from "../library/library-provider";
 import { BucketArt } from "./bucket-art";
-import { ContentsList } from "./contents-list";
 import { describeDrawRefusal, describeResolveRefusal } from "./draw-messages";
+import { ItemList } from "./item-list";
 import { HandCard } from "./hand-card";
 import { iconGlyph } from "./icons";
 import { TossBackDialog } from "./toss-back-dialog";
@@ -21,9 +21,9 @@ export interface BucketViewProps {
   /** The bucket to show. */
   bucketId: string;
   /** The item shown in the details pane. */
-  selectedItemId: string | undefined;
-  /** Called when the user picks an item. */
-  onSelectItem: (itemId: string) => void;
+  selectedIds: readonly string[];
+  /** Called when the selection changes. */
+  onSelectedIdsChange: (ids: string[]) => void;
   /** Controls at the start of the header (the narrow layout's "show buckets" button). */
   leading?: ReactNode;
   /** Controls at the end of the header (the narrow layout's "show details" button). */
@@ -47,8 +47,8 @@ export function BucketView(props: BucketViewProps): ReactElement | null {
 function BucketPane({
   bucket,
   bucketId,
-  selectedItemId,
-  onSelectItem,
+  selectedIds,
+  onSelectedIdsChange,
   leading,
   trailing,
   addInputRef,
@@ -225,18 +225,19 @@ function BucketPane({
                   tossBack(state.item.id);
                 }}
                 onSelect={() => {
-                  onSelectItem(state.item.id);
+                  onSelectedIdsChange([state.item.id]);
                 }}
               />
             ))}
           </ul>
         </section>
-        <ContentsList
+        <ItemList
           bucket={bucket}
           states={states}
-          selectedItemId={selectedItemId}
-          onSelect={onSelectItem}
+          selectedIds={selectedIds}
+          onSelectedIdsChange={onSelectedIdsChange}
           canEdit={role === "owner" || role === "editor"}
+          canTick={canResolve}
           addInputRef={addInputRef}
         />
       </div>

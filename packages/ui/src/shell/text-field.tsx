@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { useState, type ReactElement } from "react";
+import { useState, type ClipboardEvent, type ReactElement } from "react";
 
 /** Props for {@link TextField}. */
 export interface TextFieldProps {
@@ -16,6 +16,8 @@ export interface TextFieldProps {
   disabled?: boolean;
   /** Hint shown while empty. */
   placeholder?: string;
+  /** Called with pasted text; return `true` to handle it yourself and keep it out of the field. */
+  onPasteText?: (text: string) => boolean;
 }
 
 /**
@@ -32,8 +34,12 @@ export function TextField({
   multiline = false,
   disabled = false,
   placeholder,
+  onPasteText,
 }: TextFieldProps): ReactElement {
   const [draft, setDraft] = useState(value);
+  const paste = (event: ClipboardEvent<HTMLTextAreaElement>): void => {
+    if (onPasteText?.(event.clipboardData.getData("text")) === true) event.preventDefault();
+  };
   const commit = (): void => {
     if (draft !== value) onCommit(draft);
   };
@@ -50,6 +56,7 @@ export function TextField({
             setDraft(e.target.value);
           }}
           onBlur={commit}
+          onPaste={paste}
         />
       ) : (
         <input

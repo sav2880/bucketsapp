@@ -33,7 +33,8 @@ export function Shell(): ReactElement {
   const width = useViewportWidth();
 
   const [chosenBucket, setChosenBucket] = useState<string | undefined>(undefined);
-  const [selectedItemId, setSelectedItemId] = useState<string | undefined>(undefined);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const selectedItemId = selectedIds.length === 1 ? selectedIds[0] : undefined;
   const [mode, setMode] = useState<InspectorMode>("item");
   const [newBucketOpen, setNewBucketOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -48,14 +49,14 @@ export function Shell(): ReactElement {
 
   const selectBucket = (id: string): void => {
     setChosenBucket(id);
-    setSelectedItemId(undefined);
+    setSelectedIds([]);
     setMode("bucket");
     setDrawerOpen(false);
   };
-  const selectItem = (id: string): void => {
-    setSelectedItemId(id);
-    setMode("item");
-    setSheetOpen(width < INSPECTOR_SHEET_BELOW);
+  const changeSelection = (ids: string[]): void => {
+    setSelectedIds(ids);
+    if (ids.length > 0) setMode("item");
+    if (ids.length === 1) setSheetOpen(width < INSPECTOR_SHEET_BELOW);
   };
 
   useShortcuts({
@@ -91,15 +92,16 @@ export function Shell(): ReactElement {
       <Inspector
         bucketId={bucketId}
         itemId={selectedItemId}
+        selectedCount={selectedIds.length}
         mode={mode}
         onModeChange={setMode}
         onItemDeleted={() => {
-          setSelectedItemId(undefined);
+          setSelectedIds([]);
           setMode("bucket");
         }}
         onBucketDeleted={() => {
           setChosenBucket(undefined);
-          setSelectedItemId(undefined);
+          setSelectedIds([]);
           setSheetOpen(false);
         }}
       />
@@ -144,8 +146,8 @@ export function Shell(): ReactElement {
     ) : (
       <BucketView
         bucketId={bucketId}
-        selectedItemId={selectedItemId}
-        onSelectItem={selectItem}
+        selectedIds={selectedIds}
+        onSelectedIdsChange={changeSelection}
         addInputRef={addInputRef}
         leading={
           narrow ? (
