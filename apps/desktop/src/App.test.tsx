@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { renderToString } from "react-dom/server";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { App } from "./App";
 
 describe("App", () => {
   it("shows the app name", () => {
-    expect(renderToString(<App theme="light" />)).toContain("<h1>Buckets</h1>");
+    render(<App theme="light" />);
+    expect(screen.getByRole("heading", { name: "Buckets" })).toBeTruthy();
   });
 
   it("applies the theme's design tokens", () => {
-    expect(renderToString(<App theme="dark" />)).toContain("--bg:#1c1c1e");
-    expect(renderToString(<App theme="light" />)).toContain("--bg:#ffffff");
+    const { container: light } = render(<App theme="light" />);
+    expect(light.querySelector("main")?.style.getPropertyValue("--bg")).toBe("#ffffff");
+    const { container: dark } = render(<App theme="dark" />);
+    expect(dark.querySelector("main")?.style.getPropertyValue("--bg")).toBe("#1c1c1e");
   });
 });

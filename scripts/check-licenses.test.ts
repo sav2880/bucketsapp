@@ -8,6 +8,10 @@ describe("check-licenses", () => {
     expect(findDisallowed({ MIT: [{ name: "a", versions: ["1.0.0"] }] })).toEqual([]);
   });
 
+  it("accepts MIT-0, which is MIT without the attribution clause", () => {
+    expect(findDisallowed({ "MIT-0": [{ name: "a", versions: ["1.0.0"] }] })).toEqual([]);
+  });
+
   it("rejects copyleft and unknown licenses, naming the package", () => {
     const report = {
       "GPL-3.0": [{ name: "bad", versions: ["2.0.0"] }],

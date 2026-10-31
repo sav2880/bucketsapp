@@ -784,7 +784,7 @@ Possible later channels: Mac App Store, Microsoft Store, Flathub, and Snap.
 **Toolchain notes (as built in M0):**
 
 - **TypeScript 6 and ESLint 9.** typescript-eslint doesn't support TypeScript 7 yet, and `eslint-plugin-jsx-a11y` doesn't support ESLint 10. Revisit both when those plugins catch up.
-- **npm license allowlist** also accepts Python-2.0 and CC-BY-3.0/4.0. They appear only in dev tooling (argparse, caniuse-lite, spdx-exceptions) and are attribution-only. Shipped code stays permissive-only.
+- **npm license allowlist** also accepts Python-2.0, CC-BY-3.0/4.0 and MIT-0. They appear only in dev tooling (argparse, caniuse-lite, spdx-exceptions, and jsdom's `@csstools` packages) and impose no more than attribution; MIT-0 is MIT without even that. Shipped code stays permissive-only.
 - **Rust dependencies** are checked with `cargo-deny` (`apps/desktop/src-tauri/deny.toml`): permissive licenses, RustSec advisories, known registries only. One advisory is ignored, RUSTSEC-2024-0370 (an unmaintained build-time macro pulled in by Tauri's Linux backend); the reason is recorded in the file.
 - **Prettier skips Markdown** and `.claude/`, so hand-formatted docs and tables aren't rewritten.
 - **pnpm** runs no dependency build scripts by default; `allowBuilds` in `pnpm-workspace.yaml` records the decision for esbuild (denied; `tsx` and `vite` don't need it).
@@ -867,7 +867,7 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 
 | # | Question | Notes |
 |---|---|---|
-| 1 | What is the app's bundle identifier? | `apps/desktop/src-tauri/tauri.conf.json` uses the placeholder `com.example.buckets`. The identifier sets where the desktop app keeps its data and is used for macOS notarization and the updater, so pick a reverse-domain name you control before any release (M12 at the latest). |
+| 1 | What is the app's bundle identifier? | `apps/desktop/src-tauri/tauri.conf.json` uses the development-only identifier `dev.buckets.app.dev` (changed from `com.example.buckets` at the start of M2). The identifier sets where the desktop app keeps its data and is used for macOS notarization and the updater, so pick a reverse-domain name you control before any release (M12 at the latest). Changing it moves the app data folder, so the release build needs a one-time move of any data saved under the development identifier. |
 
 
 New questions go here as they come up during development (see AGENTS.md §11).

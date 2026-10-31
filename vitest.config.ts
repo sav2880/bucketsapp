@@ -4,13 +4,32 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    include: [
-      "packages/*/src/**/*.test.ts",
-      "packages/*/src/**/*.test.tsx",
-      "packages/*/test/**/*.test.ts",
-      "apps/*/src/**/*.test.ts",
-      "apps/*/src/**/*.test.tsx",
-      "scripts/**/*.test.ts",
+    // Two environments: UI code runs under jsdom so Testing Library can render it; everything else
+    // stays in plain Node so the pure packages cannot lean on DOM globals by accident.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "node",
+          environment: "node",
+          include: [
+            "packages/*/src/**/*.test.ts",
+            "packages/*/test/**/*.test.ts",
+            "apps/*/src/**/*.test.ts",
+            "scripts/**/*.test.ts",
+          ],
+          exclude: ["packages/ui/**", "**/node_modules/**"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          environment: "jsdom",
+          include: ["packages/ui/src/**/*.test.{ts,tsx}", "apps/*/src/**/*.test.tsx"],
+          setupFiles: ["./vitest.setup.dom.ts"],
+        },
+      },
     ],
     coverage: {
       provider: "v8",

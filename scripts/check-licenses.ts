@@ -10,9 +10,12 @@ import { isEntryPoint, listFiles } from "./lib/files";
  * Licenses accepted for client dependencies (plan.md §14: permissive only).
  * Python-2.0 and CC-BY-* appear only in dev tooling (argparse, caniuse-lite,
  * spdx-exceptions); they are attribution-only and do not restrict our code.
+ * MIT-0 is MIT without the attribution clause; it appears only in dev tooling
+ * (jsdom's @csstools packages).
  */
 export const ALLOWED_LICENSES: ReadonlySet<string> = new Set([
   "MIT",
+  "MIT-0",
   "BSD-2-Clause",
   "BSD-3-Clause",
   "ISC",
