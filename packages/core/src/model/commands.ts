@@ -40,7 +40,16 @@ export type CommandRefusal =
   | "invalid-weight"
   | "invalid-rules"
   | "invalid-time-zone"
-  | "invalid-order";
+  | "invalid-order"
+  | "unknown-link"
+  | "unknown-attachment"
+  | "unknown-bucket"
+  | "invalid-url"
+  | "invalid-color"
+  | "invalid-attachment"
+  | "item-has-content"
+  | "item-in-hand"
+  | "item-has-child-bucket";
 
 /** Outcome of a command: a value, or a typed refusal the UI can explain. */
 export type CommandResult<T> = { ok: true; value: T } | { ok: false; reason: CommandRefusal };
@@ -169,7 +178,19 @@ export function addItem(
   return { ok: true, value: item.id };
 }
 
-function editableItem(bucket: Bucket, itemId: string, ctx: CommandContext): CommandResult<Item> {
+/**
+ * Finds an item the member may edit.
+ *
+ * @param bucket - Bucket to look in.
+ * @param itemId - The item.
+ * @param ctx - Who is asking.
+ * @returns The item (live, so callers may change it), or a refusal.
+ */
+export function editableItem(
+  bucket: Bucket,
+  itemId: string,
+  ctx: CommandContext,
+): CommandResult<Item> {
   if (!canEdit(bucket.members[ctx.memberId]?.role)) return { ok: false, reason: "not-permitted" };
   const item = bucket.items[itemId];
   return item ? { ok: true, value: item } : { ok: false, reason: "unknown-item" };

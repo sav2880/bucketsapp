@@ -14,6 +14,9 @@ export {
   type Rng,
 } from "./random/rng";
 export * from "./model/commands";
+export * from "./model/bucket-colors";
+export * from "./model/edit";
+export * from "./model/move";
 export * from "./model/presets";
 export type * from "./model/types";
 export * from "./engine/derive";
