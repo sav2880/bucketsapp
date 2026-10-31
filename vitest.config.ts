@@ -7,6 +7,7 @@ export default defineConfig({
     include: [
       "packages/*/src/**/*.test.ts",
       "packages/*/src/**/*.test.tsx",
+      "packages/*/test/**/*.test.ts",
       "apps/*/src/**/*.test.ts",
       "apps/*/src/**/*.test.tsx",
       "scripts/**/*.test.ts",
@@ -17,6 +18,8 @@ export default defineConfig({
       // run-rust-checks.ts only shells out to cargo; it is exercised by `pnpm check` itself.
       exclude: [
         "**/*.test.{ts,tsx}",
+        // Shared test helpers (for example core's chi-square statistics).
+        "packages/*/test/**",
         "scripts/run-rust-checks.ts",
         // Browser entry point: only wires App into the DOM.
         "apps/desktop/src/main.tsx",
