@@ -4,7 +4,7 @@
 
 Buckets holds the things you want to do: games to play, systems to maintain, chores, ideas. When you're ready, you reach in and pull one out. Different bucket types decide *how* things come out and *what happens* when you're finished.
 
-> **Status: pre-alpha.** Milestone M0 (repo foundations) is complete, and the M1 draw engine is built in `packages/core` (no user interface yet; the app window is still empty). See [plan.md](plan.md). Commands marked *not yet* below need a later milestone.
+> **Status: pre-alpha.** Milestones M0 (repo foundations), M1 (draw engine) and M2 (app shell and editing) are built: you can create buckets, add items with steps, links and pictures, reorder and move them, and draw, finish and toss back, on desktop and in the browser. There is no bucket artwork or animation yet (M3), no sync (M6–M7) and no export (M4). See [plan.md](plan.md). Commands marked *not yet* below need a later milestone.
 >
 > The feel of the app is in the clickable prototype in [`docs/prototype/`](docs/prototype/README.md): `cd docs/prototype && npm ci && npm run check`, then open `docs/prototype/dist/buckets-prototype.html`.
 
@@ -67,7 +67,7 @@ Follow the [Tauri Linux prerequisites](https://v2.tauri.app/start/prerequisites/
 git clone <repo-url> buckets && cd buckets
 corepack enable
 pnpm install
-pnpm dev:web        # not yet: the web app arrives in M2
+pnpm dev:web        # the web app at http://localhost:5173
 pnpm dev:desktop    # desktop app with hot reload
 ```
 
@@ -82,9 +82,9 @@ pnpm dev:desktop    # desktop app with hot reload
 | `pnpm test` | Unit and component tests (Vitest) |
 | `pnpm test:coverage` | Tests with coverage thresholds enforced |
 | `pnpm check:terminology`, `pnpm check:spdx`, `pnpm check:licenses` | The repo checks on their own |
-| `pnpm test:e2e` | *Not yet:* Playwright tests against the web build (M2 onward) |
+| `pnpm test:e2e` | Builds the web app and runs the Playwright tests on Chromium, WebKit and Firefox. First time: `pnpm exec playwright install chromium webkit firefox` (Linux: add `--with-deps`) |
 | `pnpm test:rust` | `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `cargo deny check` |
-| `pnpm build:web` | *Not yet:* production PWA in `apps/web/dist` (M2 onward) |
+| `pnpm build:web` | Production web build in `apps/web/dist` (no service worker or offline install until M7) |
 | `pnpm build:desktop` | Builds the desktop app for the current OS. Installers (`.dmg`, `.msi`, `.deb` and so on) are switched off until M12; for now the binary lands in `apps/desktop/src-tauri/target/release/` |
 
 ## Building releases
@@ -110,7 +110,7 @@ pnpm build:desktop
 # Output: apps\desktop\src-tauri\target\release\bundle\{msi,nsis}\
 ```
 
-**Not available yet:** installers and the web build. Today `pnpm build:desktop` produces only the binary (installers are switched off until M12), so the `bundle/` output folders above won't exist yet. Each OS builds its own installers. CI runs `pnpm check` and a desktop build on Ubuntu, Windows and macOS on every push to `main` and every pull request (see `.github/workflows/`). Signing needs certificates that are configured as CI secrets. Unsigned builds work but show OS security warnings.
+**Not available yet:** installers and the offline web install. Today `pnpm build:desktop` produces only the binary (installers are switched off until M12), so the `bundle/` output folders above won't exist yet. Each OS builds its own installers. CI runs `pnpm check` and a desktop build on Ubuntu, Windows and macOS on every push to `main` and every pull request (see `.github/workflows/`). Signing needs certificates that are configured as CI secrets. Unsigned builds work but show OS security warnings.
 
 ## Running the sync server (optional)
 
@@ -125,7 +125,7 @@ Put it behind HTTPS. `server/README.md` includes a Caddy example. In Buckets, op
 ## Project layout
 
 ```
-apps/web          Web app (PWA)
+apps/web          Web app (IndexedDB storage; PWA features come in M7)
 apps/desktop      Desktop app (Tauri; Rust in src-tauri/)
 packages/core     Data model and draw engine (pure TypeScript)
 packages/crypto   Keys, encryption and signing (libsodium)

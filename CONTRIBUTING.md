@@ -13,6 +13,10 @@ pnpm check
 
 `pnpm check` is the quality gate. It runs lint, a format check, type checking, the terminology, SPDX and license checks, the tests with coverage thresholds, and the Rust checks. It must pass before you open a pull request. If you change `docs/prototype/`, also run `cd docs/prototype && npm run check`.
 
+## Browser tests
+
+`pnpm test:e2e` builds the web app and runs the Playwright tests in `e2e/`. Install the browsers once with `pnpm exec playwright install chromium webkit firefox` (on Linux add `--with-deps`). Playwright drives its own Firefox build, so an installed Firefox can't stand in for it. Use `data-testid` or roles and labels, never CSS selectors.
+
 ## Rules that trip people up
 
 - **Vocabulary:** say _bucket_ and _item_ in user-facing text and code. Never "to-do", "task list", "subtask" or "checklist". `pnpm check:terminology` enforces this.

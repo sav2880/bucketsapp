@@ -2,11 +2,17 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.7 (M0 complete; M1 draw engine built in `@buckets/core`) |
-| **Last updated** | 2026-10-30 |
+| **Status** | Draft v0.8 (M0 complete; M1 draw engine built; M2 app shell and editing built, awaiting maintainer review) |
+| **Last updated** | 2026-10-31 |
 | **Platforms** | Web (offline-capable PWA), Windows 10 21H2+ / 11, macOS 12+, Linux: Ubuntu 22.04+, Fedora 39+, or equivalent (x64 + arm64) |
 | **Stack** | Tauri 2 + React + TypeScript, Automerge (CRDT), end-to-end encrypted sync |
 | **License** | Apache-2.0 (apps and packages) · AGPL-3.0-only (`server/`) |
+
+### Changes in v0.8
+
+- M2 is built: the three-pane shell, resizable panes and columns, Reminders-style entry with steps, links and images, the inspector, a plain draw loop, local persistence on desktop (files) and web (IndexedDB), a web app, and Playwright tests (§15).
+- §8.5 records the storage layout and how documents are saved. §12.2 and §12.4 record the pane defaults, the breakpoints and how editing, moving and images behave.
+- Decisions 17–21 (§17) cover Automerge layering, the item-move rules, plaintext picture storage until M5, the picture pipeline and the development bundle identifier. Open question 2 (§18) is how the desktop app should open links. ADR: `docs/adr/0002-m2-persistence-and-shell.md`.
 
 ### Changes in v0.7
 
@@ -444,6 +450,15 @@ All file and keychain access goes through `StorageAdapter` interfaces. This keep
 - Window size, position, pane widths, and column widths persist per window.
 - Safari and Firefox don't support the File System Access API, so "Save" there means "Download a copy". The app says so clearly. Folder sync on the web works only in Chromium browsers and needs the user to re-grant permission each session, so **the sync server is the recommended sync method for web users.**
 
+### 8.5 What M2 built: layout and saving
+
+- **Keys:** `library` (the library document), `buckets/<id>` (one document per bucket), `blobs/<sha-256 hex>` (picture bytes) and `settings/<name>` (per-device preferences such as pane and column sizes, and this device's member and device ids). A key has one to four parts of `[A-Za-z0-9][A-Za-z0-9._-]{0,127}`.
+- **Where:** desktop keeps these as files in the app data folder, written by four Rust commands (`storage_read`, `storage_write`, `storage_list`, `storage_remove`) that check every path and write atomically (temp file, sync, rename, then sync the folder on Unix). The web app keeps them in one IndexedDB store. Both sit behind the `StorageAdapter` interface in `packages/storage`.
+- **Layering:** `@buckets/core` stays free of Automerge. `packages/storage` holds the Automerge documents and runs each core command inside `Automerge.change`. Saves are a full `Automerge.save` snapshot per changed document, debounced by 300 ms, and flushed when the window is hidden or closed. Loading runs `migrateBucket` or `migrateLibrary` first. A document from a newer version, or a damaged one, is left untouched and reported rather than opened.
+- **Pictures:** stored under the SHA-256 of their bytes, as plain bytes until M5, when encryption changes the id to the hash of the ciphertext and needs a migration. Pictures nothing refers to any more are not deleted yet (`findUnreferencedBlobIds` exists; the 30-day cleanup comes in M4).
+- **Moving an item between buckets:** the item's definition (title, notes, tags, weight, steps, links and pictures) moves and keeps its id unless the destination already has that id. Its draw history stays behind, so it starts fresh. An item in someone's hand, or one that holds a child bucket, can't be moved. The app adds it to the destination first and then removes it from the source, so a crash can duplicate an item but never lose one.
+- **Member id:** until sharing (M9), the member id is made on first run and kept in the device settings.
+
 ## 9. Sync and encryption
 
 ### 9.1 One transport, two backends
@@ -689,6 +704,7 @@ A three-pane, macOS-style window:
 - The panes use `react-resizable-panels`. Each pane has minimum and maximum widths. Dragging past a minimum collapses the pane, with a snap animation. Double-clicking a divider resets it to its default width. Sizes persist.
 - Columns in the contents table are resizable. Double-clicking a column edge sizes it to fit its content, and columns get narrower in proportion as the window shrinks.
 - Responsive breakpoints: below about 900 px, the inspector becomes a slide-over sheet. Below about 600 px (narrow web windows), the sidebar becomes a drawer.
+- **Built in M2:** the sidebar defaults to 232 px (180–360) and the inspector to 304 px (260–460). Sizes are saved per layout (wide, medium, narrow). `ResizableColumns` is our own component: drag an edge, or focus it and use the arrow keys; Enter or a double-click fits the column. The columns are name, steps, status, weight and added.
 
 ### 12.3 The bucket itself
 
@@ -738,6 +754,13 @@ Light and dark modes follow the system everywhere. The overall design leans macO
 ### 12.8 App icon
 
 A cute, rounded bucket with a little handle and a couple of slips peeking out. It gets a macOS-style squircle background for macOS, and a flat variant for Windows, Linux (in hicolor sizes), the web favicon, and PWA icons. Monochrome variants are used for the menu bar and tray. SVG source goes in `docs/design/`.
+
+### 12.4a Editing behavior built in M2
+
+- Type on the empty row and press Return for the next item. Pasting several lines makes one item per line (list markers are stripped). Tab on a new row makes it a step of the item above; Shift-Tab turns a step back into an item.
+- Click, Ctrl/⌘-click and Shift-click select; Delete asks first. ⌥↑ and ⌥↓ reorder, and a "Move to bucket" menu moves items without a mouse. Native drag does the same, including dropping on a bucket in the sidebar.
+- Links accept only `http`, `https` and `mailto`, and are never fetched. On the web they open in a new tab. The desktop app can only copy them for now (open question 2).
+- Pictures: up to 10 MB of JPEG, PNG, WebP, GIF or HEIC (HEIC only where the browser can decode it, in practice WebKit). Each is scaled to at most 2,560 px on its longest side and re-drawn through a canvas, which removes EXIF data including location. JPEG and WebP keep their type, PNG and GIF become PNG, HEIC becomes JPEG, and an animated GIF keeps only its first frame. The person is asked for a description when adding one.
 
 ## 13. Distribution and updates
 
@@ -824,6 +847,8 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 
 **M1 status (2026-10-30): built in `packages/core`; awaiting maintainer review.** Delivered: the data model and eight presets; role-checked commands; derived state; `checkDraw`, `draw` and `resolve`; Efraimidis–Spirakis sampling and round robin; `nextFireTimes` with the RRULE subset; history compaction; the migration mechanism; and tests (every scenario from `prototype/engine.test.js` including the 10-systems example, chi-square fairness over 100,000 seeded draws, fast-check properties, and a property test that compaction never changes derived state). Intentional differences from the prototype are listed in `docs/adr/0001-core-engine-decisions.md`. The prototype was moved unchanged to `docs/prototype/` as frozen history.
 
+**M2 status (2026-10-31): built; awaiting maintainer review.** Delivered: new core commands for editing, links, pictures, moving items and bucket settings; `packages/storage` (adapters for memory, IndexedDB and Tauri files, a picture store, settings and the Automerge library store); atomic file commands in Rust; the shell, a plain draw loop, the inspector, the item list and pictures in `packages/ui`; both apps wired to it; and Playwright tests. Still to do by hand: open the desktop window on each OS and confirm the library loads under the content security policy (`wasm-unsafe-eval` was added for Automerge) and survives a relaunch; check pane dragging and the picture pipeline in real windows; the Firefox Playwright run (it couldn't launch on the maintainer's Mac, so CI is its first run); a pass with a screen reader on the item list. Known gaps: links can't be opened from the desktop app, HEIC decodes only where the engine can, and unreferenced pictures are not cleaned up until M4. Next is M3.
+
 **Total: about 31.5 weeks**, plus the security review's turnaround. A usable personal build without sync (M0–M4) takes about 11.5 weeks. Personal sync across your own devices is ready after M7, at about 20.5 weeks.
 
 ## 16. Risks
@@ -862,12 +887,17 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 | 14 | Daily Draw default | The preset draws 2 items at a time (`drawCount` and `maxInHand` are both 2); unfinished items return at `00:00`. | §6.4, `PRESETS["daily-draw"]` |
 | 15 | The prototype after M1 | Move it to `docs/prototype/` and keep it as frozen history, with its own CI gate | Repo layout, CI, AGENTS.md §2 and §12 |
 | 16 | Automatic return (`autoReturnAt`) | Derived while reading, in the bucket's time zone; no events written | §5 `Bucket.timeZone`, §6.2; ADR 0001 |
+| 17 | Automerge and `core` | `core` stays free of Automerge; `packages/storage` runs core commands inside `Automerge.change` and saves snapshots | §8.5; ADR 0002 |
+| 18 | Moving items between buckets | Definition moves, history stays behind, items in hand or holding a child bucket can't move; destination first, then remove from source | §8.5; ADR 0002 |
+| 19 | Pictures before encryption | Plain bytes stored by SHA-256 until M5, then re-keyed; cleanup deferred to M4 | §5, §8.5, M4, M5 |
+| 20 | Picture pipeline | Up to 10 MB, scaled to 2,560 px and re-encoded in the browser, which strips EXIF; animated GIF keeps its first frame; HEIC only where decodable | §12.4a |
+| 21 | Bundle identifier for development | `dev.buckets.app.dev` until a real one is chosen (open question 1) | §18 |
 
 ## 18. Open questions
 
 | # | Question | Notes |
 |---|---|---|
 | 1 | What is the app's bundle identifier? | `apps/desktop/src-tauri/tauri.conf.json` uses the development-only identifier `dev.buckets.app.dev` (changed from `com.example.buckets` at the start of M2). The identifier sets where the desktop app keeps its data and is used for macOS notarization and the updater, so pick a reverse-domain name you control before any release (M12 at the latest). Changing it moves the app data folder, so the release build needs a one-time move of any data saved under the development identifier. |
-
+| 2 | How should the desktop app open links? | In M2 links open in a new tab on the web and can only be copied on desktop. Opening them needs the Tauri opener plugin (or a small Rust command) with its permission limited to `http`, `https` and `mailto`. Decide before M4, and say whether an extra confirmation is wanted. |
 
 New questions go here as they come up during development (see AGENTS.md §11).
