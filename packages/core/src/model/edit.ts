@@ -12,6 +12,22 @@ import type { Attachment, Bucket, BucketRef, Library, Link } from "./types";
 const OK = { ok: true, value: undefined } as const;
 
 /**
+ * Deletes the entry with the given id by splicing it out. Assigning a filtered copy would fail
+ * inside Automerge (it cannot re-insert objects already in the document) and would make
+ * concurrent edits to the other entries conflict.
+ */
+function removeById(list: { id: string }[], id: string): void {
+  const at = list.findIndex((entry) => entry.id === id);
+  if (at >= 0) list.splice(at, 1);
+}
+
+/** Same for a list of plain ids. */
+function removeId(list: string[], id: string): void {
+  const at = list.indexOf(id);
+  if (at >= 0) list.splice(at, 1);
+}
+
+/**
  * Link shapes we accept: `http(s)://host…` and `mailto:name@host`. Core has no `URL` class (it
  * must stay free of platform APIs), and a strict pattern is safer than parsing anyway:
  * `javascript:`, `data:`, `file:` and friends never match. No whitespace or control characters.
@@ -121,7 +137,7 @@ export function removeItem(
   const found = editableItem(bucket, itemId, ctx);
   if (!found.ok) return found;
   Reflect.deleteProperty(bucket.items, itemId);
-  bucket.itemOrder = bucket.itemOrder.filter((id) => id !== itemId);
+  removeId(bucket.itemOrder, itemId);
   return OK;
 }
 
@@ -170,7 +186,7 @@ export function removeStep(
   const found = editableItem(bucket, itemId, ctx);
   if (!found.ok) return found;
   if (!found.value.steps.some((s) => s.id === stepId)) return { ok: false, reason: "unknown-step" };
-  found.value.steps = found.value.steps.filter((s) => s.id !== stepId);
+  removeById(found.value.steps, stepId);
   return OK;
 }
 
@@ -232,7 +248,7 @@ export function convertItemToStep(
   const step = { id: ctx.makeId(), title: item.title, done: false };
   parent.value.steps.push(step);
   Reflect.deleteProperty(bucket.items, itemId);
-  bucket.itemOrder = bucket.itemOrder.filter((id) => id !== itemId);
+  removeId(bucket.itemOrder, itemId);
   return { ok: true, value: step.id };
 }
 
@@ -270,7 +286,7 @@ export function convertStepToItem(
   };
   const at = bucket.itemOrder.indexOf(itemId);
   bucket.itemOrder.splice(at + 1, 0, id);
-  found.value.steps = found.value.steps.filter((s) => s.id !== stepId);
+  removeById(found.value.steps, stepId);
   return { ok: true, value: id };
 }
 
@@ -345,7 +361,7 @@ export function removeLink(
   const found = editableItem(bucket, itemId, ctx);
   if (!found.ok) return found;
   if (!found.value.links.some((l) => l.id === linkId)) return { ok: false, reason: "unknown-link" };
-  found.value.links = found.value.links.filter((l) => l.id !== linkId);
+  removeById(found.value.links, linkId);
   return OK;
 }
 
@@ -436,7 +452,7 @@ export function removeAttachment(
   if (!found.ok) return found;
   if (!found.value.attachments.some((a) => a.id === attachmentId))
     return { ok: false, reason: "unknown-attachment" };
-  found.value.attachments = found.value.attachments.filter((a) => a.id !== attachmentId);
+  removeById(found.value.attachments, attachmentId);
   return OK;
 }
 
@@ -509,7 +525,7 @@ export function removeBucketRef(library: Library, bucketId: string): CommandResu
   const ref = library.buckets[bucketId];
   if (!ref) return { ok: false, reason: "unknown-bucket" };
   Reflect.deleteProperty(library.buckets, bucketId);
-  library.bucketOrder = library.bucketOrder.filter((id) => id !== bucketId);
+  removeId(library.bucketOrder, bucketId);
   Reflect.deleteProperty(library.reminders, bucketId);
   return { ok: true, value: ref };
 }
