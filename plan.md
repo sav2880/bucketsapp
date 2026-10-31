@@ -782,7 +782,7 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 | M11 | Hosted service | Production deployment, quotas, backups, status page, privacy policy and terms, **independent security review** | Review findings resolved; load test passes | 2 wk + review time |
 | M12 | Polish and release | Accessibility audit, signing on all OSes, updater, installers, docs site, SBOM | v1.0 released for Win, Mac, Linux, and web | 2 wk |
 
-**M0 status (2026-10-18):** everything in the scope column is built, and `pnpm check` and the Tauri build passed in CI on Ubuntu, Windows and macOS. The empty window has been opened and checked by hand on **macOS** (it opens, resizes, quits cleanly, and follows light and dark live). **Still open:** the same hand check on Windows and Linux, which CI can't do because it can't see a window. M0 is complete when both are done. The icon is a placeholder draft (`docs/design/app-icon.svg`).
+**M0 status (2026-10-30): complete.** Everything in the scope column is built, and `pnpm check` and the Tauri build passed in CI on Ubuntu, Windows and macOS. The empty window has been opened and checked by hand on macOS, Windows and Linux. The icon is a placeholder draft (`docs/design/app-icon.svg`). Next is M1.
 
 **Total: about 31.5 weeks**, plus the security review's turnaround. A usable personal build without sync (M0–M4) takes about 11.5 weeks. Personal sync across your own devices is ready after M7, at about 20.5 weeks.
 

@@ -4,7 +4,7 @@
 
 Buckets holds the things you want to do: games to play, systems to maintain, chores, ideas. When you're ready, you reach in and pull one out. Different bucket types decide *how* things come out and *what happens* when you're finished.
 
-> **Status: pre-alpha.** Milestone M0 (repo foundations) is built: the workspace, tooling, checks, CI and an empty desktop window. There is no product code yet. The draw engine is M1; see [plan.md](plan.md). Commands marked *not yet* below need a later milestone.
+> **Status: pre-alpha.** Milestone M0 (repo foundations) is complete: the workspace, tooling, checks, CI and an empty desktop window. There is no product code yet. The draw engine is M1; see [plan.md](plan.md). Commands marked *not yet* below need a later milestone.
 >
 > The feel of the app is in the clickable prototype in [`prototype/`](prototype/README.md): `cd prototype && npm ci && npm run check`, then open `prototype/dist/buckets-prototype.html`.
 
