@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { Duration } from "../duration";
+import type { BucketReminder } from "../reminders/next-fire-times";
 
 /**
  * Data model types, plan.md §5. These describe plain JSON-compatible documents so they can
@@ -185,6 +186,38 @@ export interface SharingSettings {
   tossBackReasons: "shared" | "private";
 }
 
+/** Where one item stood when old history was compacted away (see `compactHistory`). */
+export interface ItemBaseline {
+  /** In the bucket, in someone's hand, or finished for good. */
+  status: "in" | "hand" | "done";
+  /** Member holding it, while in hand. */
+  heldBy: string | null;
+  /** When it was drawn, while in hand. */
+  heldSince: string | null;
+  /** Last time it was drawn. */
+  lastDrawnAt: string | null;
+  /** Last time it was finished. */
+  lastDoneAt: string | null;
+  /** How many times it has been drawn. */
+  timesDrawn: number;
+  /** How many times it has been finished. */
+  timesDone: number;
+  /** When its rest ends, if it was returned with a cooldown. */
+  cooldownUntil: string | null;
+  /** Whether it has had its turn in the current cycle. */
+  drawnThisCycle: boolean;
+  /** Turn flag before the latest draw, so a later toss-back can still undo it. */
+  prevDrawnThisCycle: boolean;
+}
+
+/** Summary of events older than `through`, which were removed from the history. */
+export interface BucketBaseline {
+  /** Events strictly before this instant are folded in. */
+  through: string;
+  /** Per-item state at that instant. */
+  items: Record<string, ItemBaseline>;
+}
+
 /** A bucket: one shareable document. */
 export interface Bucket {
   /** Unique id. */
@@ -209,8 +242,10 @@ export interface Bucket {
   items: Record<string, Item>;
   /** Display order of item ids. */
   itemOrder: string[];
-  /** Append-only history. */
+  /** Append-only history, minus anything folded into {@link Bucket.baseline}. */
   events: DrawEvent[];
+  /** State at the point old history was compacted away; absent until the first compaction. */
+  baseline?: BucketBaseline;
   /** When the bucket was created. */
   createdAt: string;
 }
@@ -243,6 +278,8 @@ export interface Library {
   buckets: Record<string, BucketRef>;
   /** Display order of bucket ids. */
   bucketOrder: string[];
+  /** Reminders by bucket id; personal, never shared (plan.md §7). */
+  reminders: Record<string, BucketReminder[]>;
   /** Personal settings. */
   settings: LibrarySettings;
   /** Name and avatar shown to others. */

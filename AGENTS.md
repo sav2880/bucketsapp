@@ -70,17 +70,17 @@ To run one package: `pnpm --filter @buckets/core test`.
  * refusal the UI can explain to the user.
  *
  * @param bucket - The bucket to draw from.
- * @param now - Current time; injected so results are reproducible.
- * @param rng - Random source; use `createSeededRng` in tests.
+ * @param request - Who is drawing, plus `now` (injected so results are reproducible), `rng`
+ *   (use `createSeededRng` in tests) and an id source.
  * @returns New `drawn` events, or a refusal with its reason.
  *
  * @example
  * ```ts
- * const result = draw(bucket, new Date("2026-01-01"), createSeededRng(42));
+ * const result = draw(bucket, { memberId, deviceId, now: new Date("2026-01-01"), rng: createSeededRng(42), makeId });
  * if (result.ok) applyEvents(bucket, result.events);
  * ```
  */
-export function draw(bucket: Bucket, now: Date, rng: Rng): DrawResult { … }
+export function draw(bucket: Bucket, request: DrawRequest): DrawResult { … }
 ````
 
 Comment the *why* for any non-obvious logic, such as weighting formulas, sync edge cases, or platform workarounds. Link to the relevant plan.md section (for example, `// See plan.md §6.2 step 3`).
@@ -147,8 +147,9 @@ Don't guess on product questions. Add the question to plan.md §18 (Open questio
 ## 12. Current state and the prototype
 
 - **The monorepo in §2 is partly in place.** M0 slice 1 added the pnpm workspace with empty package stubs, strict TypeScript, ESLint, Prettier, Vitest and `pnpm check`. Slice 3 added design tokens (`packages/ui/src/tokens`), a placeholder icon (`docs/design/app-icon.svg`) and the CI workflow. Slice 2 added the empty Tauri 2 window (`apps/desktop/src-tauri`), so `pnpm test:rust` now runs `cargo fmt --check`, `clippy -D warnings`, `cargo test` and `cargo deny check`; it needs Rust and `cargo-deny` installed. M0 is complete: CI is green on all three OSes and the window has been opened by hand on each one.
+- **M1 is built in `packages/core`** (see plan.md §15 and `docs/adr/0001-core-engine-decisions.md`): model, presets, commands, derived state, `draw` and `resolve`, `nextFireTimes`, history compaction and migrations. Commands change the bucket they are given so they can run inside an Automerge `change()`; everything else is pure. Test helpers live in `packages/core/test/` (excluded from coverage). `pnpm --filter @buckets/core test` runs just that package.
 - **Two gates exist:** `pnpm check` at the root for the workspace, and `cd prototype && npm run check` for the prototype (ESLint, engine unit tests, build, jsdom smoke tests). `prototype/` is outside the pnpm workspace; run both when you touch both.
 - `prototype/` is plain JavaScript with JSDoc, not TypeScript. It's exempt from the TypeScript and package rules above, but rules 1, 3, 4, 5, 6 and 9 still apply.
-- `prototype/engine.js` is the reference implementation of plan.md §6. In M1, port it to `packages/core` in TypeScript and port `engine.test.js` with it, keeping every scenario.
-- Once M1 ships, either delete `prototype/` or move it to `docs/prototype/`. Ask the maintainer which.
+- `prototype/engine.js` was the reference for plan.md §6 and has been ported to `packages/core`, with every scenario from `engine.test.js`. The prototype is unchanged; the differences are listed in the ADR.
+- Once M1 is accepted, either delete `prototype/` or move it to `docs/prototype/`. Ask the maintainer which.
 

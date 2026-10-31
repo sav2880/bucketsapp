@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import { BUCKET_SCHEMA_VERSION, LIBRARY_SCHEMA_VERSION } from "../migrations";
 import { PRESETS, matchPreset, rulesEqual } from "./presets";
 import type {
   Bucket,
   BucketPresetId,
+  BucketRef,
   BucketRules,
   DrawEvent,
   Item,
+  Library,
   MemberRole,
   Step,
 } from "./types";
@@ -73,9 +76,6 @@ export interface NewBucket {
   /** Display name of the creator, who becomes the owner. */
   ownerName: string;
 }
-
-/** Current bucket format version; bump together with a migration (AGENTS.md rule 10). */
-export const BUCKET_SCHEMA_VERSION = 1;
 
 /**
  * Creates a bucket whose only member, the owner, is the creator.
@@ -333,9 +333,53 @@ export function setRules(
 /**
  * Appends events to the bucket's history, as returned by `draw` or `resolve`.
  *
+ * An item that returns to the bucket after being finished starts its steps afresh when the
+ * rule `resetStepsOnReturn` is on. Steps are stored state, so this change travels with the
+ * event inside one `change()`.
+ *
  * @param bucket - Bucket to change.
  * @param events - Events to append, in order.
  */
 export function applyEvents(bucket: Bucket, events: readonly DrawEvent[]): void {
   bucket.events.push(...events);
+  if (!bucket.rules.resetStepsOnReturn) return;
+  for (const event of events) {
+    if (event.kind !== "done" || event.onDone === "remove") continue;
+    for (const step of bucket.items[event.itemId]?.steps ?? []) {
+      step.done = false;
+      delete step.doneBy;
+      delete step.doneAt;
+    }
+  }
+}
+
+/**
+ * Creates an empty personal library.
+ *
+ * @param displayName - Name shown to other members.
+ * @param ctx - Time and id source.
+ * @returns A new library with no buckets.
+ */
+export function createLibrary(displayName: string, ctx: Pick<CommandContext, "makeId">): Library {
+  return {
+    id: ctx.makeId(),
+    schemaVersion: LIBRARY_SCHEMA_VERSION,
+    buckets: {},
+    bucketOrder: [],
+    reminders: {},
+    settings: { appearance: "system" },
+    profile: { displayName },
+  };
+}
+
+/**
+ * Adds a pointer to a bucket at the end of the library, or updates the pointer if the bucket is
+ * already there.
+ *
+ * @param library - Library to change.
+ * @param ref - Pointer to the bucket.
+ */
+export function addBucketRef(library: Library, ref: BucketRef): void {
+  if (!library.bucketOrder.includes(ref.bucketId)) library.bucketOrder.push(ref.bucketId);
+  library.buckets[ref.bucketId] = { ...ref };
 }

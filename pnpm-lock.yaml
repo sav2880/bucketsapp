@@ -236,7 +236,11 @@ importers:
 
   apps/web: {}
 
-  packages/core: {}
+  packages/core:
+    devDependencies:
+      fast-check:
+        specifier: ^4.10.2
+        version: 4.10.2
 
   packages/crypto: {}
 

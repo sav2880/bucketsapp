@@ -2,12 +2,14 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  addBucketRef,
   addItem,
   addStep,
   applyEvents,
   canDraw,
   canEdit,
   createBucket,
+  createLibrary,
   reorderItems,
   setItemArchived,
   setItemWeight,
@@ -281,5 +283,30 @@ describe("applyEvents", () => {
     applyEvents(bucket, [event("1"), event("2")]);
     applyEvents(bucket, [event("3")]);
     expect(bucket.events.map((e) => e.id)).toEqual(["1", "2", "3"]);
+  });
+});
+
+describe("library", () => {
+  it("starts empty with default settings and the chosen name", () => {
+    const library = createLibrary("Me", context());
+    expect(library).toEqual({
+      id: "id-1",
+      schemaVersion: 1,
+      buckets: {},
+      bucketOrder: [],
+      reminders: {},
+      settings: { appearance: "system" },
+      profile: { displayName: "Me" },
+    });
+  });
+
+  it("adds bucket pointers once, in order, and updates an existing pointer", () => {
+    const library = createLibrary("Me", context());
+    const ref = { bucketId: "b1", keyId: "k1", role: "owner" as const, addedAt: NOW.toISOString() };
+    addBucketRef(library, ref);
+    addBucketRef(library, { ...ref, bucketId: "b2" });
+    addBucketRef(library, { ...ref, role: "viewer" });
+    expect(library.bucketOrder).toEqual(["b1", "b2"]);
+    expect(library.buckets["b1"]?.role).toBe("viewer");
   });
 });

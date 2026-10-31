@@ -2,11 +2,17 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.6 (M0 foundations in place; no product code yet) |
-| **Last updated** | 2026-10-18 |
+| **Status** | Draft v0.7 (M0 complete; M1 draw engine built in `@buckets/core`) |
+| **Last updated** | 2026-10-30 |
 | **Platforms** | Web (offline-capable PWA), Windows 10 21H2+ / 11, macOS 12+, Linux: Ubuntu 22.04+, Fedora 39+, or equivalent (x64 + arm64) |
 | **Stack** | Tauri 2 + React + TypeScript, Automerge (CRDT), end-to-end encrypted sync |
 | **License** | Apache-2.0 (apps and packages) · AGPL-3.0-only (`server/`) |
+
+### Changes in v0.7
+
+- M0 is complete: the empty window has been checked by hand on macOS, Windows and Linux (§15).
+- M1 is built in `packages/core`: the data model, presets, commands, derived state, the draw and resolve functions, reminder scheduling, history compaction and the migration mechanism. §5–§8 now record the decisions M1 had to make: the `Duration` type, the `draw` and `resolve` call shapes, the RRULE subset, the compaction baseline and how migrations work.
+- Two open questions added: the Daily Draw defaults and when `autoReturnAt` takes effect (§18).
 
 ### Changes in v0.6
 
@@ -162,6 +168,14 @@ Each **bucket is its own Automerge document**, encrypted with its own key, so a 
 Item state is **derived from an event history** rather than stored as a mutable field. When several devices or people draw and finish items while offline, their events merge cleanly. Nobody's action is lost, and the "current state" is recomputed from the merged history.
 
 ```ts
+/** A length of time. Stored data never holds raw milliseconds. Calendar units (months, years) are excluded on purpose. */
+interface Duration { unit: "minutes" | "hours" | "days"; value: number }  // value is finite and not negative
+
+type MemberRole = "owner" | "editor" | "drawer" | "viewer";
+type BucketPresetId = "grab-and-go" | "rotation-pool" | "weighted" | "simmer" | "mystery-bag"
+                    | "daily-draw" | "round-robin" | "nested" | "custom";
+interface LibrarySettings { appearance: "system" | "light" | "dark" }  // grows as later milestones need settings
+
 /** Personal document: one per user, synced only between that user's devices. */
 interface Library {
   id: string;
@@ -246,10 +260,20 @@ interface DrawEvent {
   deviceId: string;
   note?: string;           // e.g. the reason given for a toss-back (when reasons are shared)
   privateNote?: string;    // ciphertext readable only by the author's devices (when reasons are private)
+  // Snapshots of the rules in force at the time, so later rule edits never rewrite history:
+  onDone?: "remove" | "return";  // on "done"
+  cooldown?: Duration;           // on "done" with onDone "return"
+  countsAsDrawn?: boolean;       // on "tossed-back"
 }
 ```
 
-**Derived per item** (computed in `core`, memoized): `status` (in bucket, in hand, cooling down, or done), `heldBy` (memberId), `lastDrawnAt`, `lastDoneAt`, `timesDrawn`, `cooldownUntil`, `drawnThisCycle`, `stepsProgress`.
+`cycle-reset` events concern every item, so their `itemId` is an empty string.
+
+**Commands.** All changes go through functions in `core` (`createBucket`, `addItem`, `setRules`, `applyEvents` and so on). They change the bucket they are given, so they can run inside an Automerge `change()`. They do no I/O, read no clock and generate no ids; time and ids arrive in a `CommandContext`. They check the member's role and return a typed refusal instead of throwing. Owners and editors may edit items and rules; owners, editors and drawers may draw and tick steps; viewers may only read.
+
+**Derived per item** (computed in `core`, memoized): `status` (in bucket, in hand, cooling down, or done), `heldBy` (memberId), `heldSince`, `lastDrawnAt`, `lastDoneAt`, `timesDrawn`, `timesDone`, `cooldownUntil`, `drawnThisCycle`, `stepsProgress`.
+
+Events are replayed in time order, then by event id, whatever order they arrived in. Conflicting events from different devices resolve like this: a draw of an item already in hand is ignored (the earliest draw wins); finishing or tossing back an item that is not in hand is ignored (repeats are harmless); events for items that no longer exist are skipped.
 
 **Images:**
 
@@ -258,7 +282,7 @@ interface DrawEvent {
 - Images up to 10 MB are accepted before resizing.
 - A blob is garbage-collected after no item has referenced it for 30 days.
 
-**Event growth:** events are compacted after a configurable horizon (default: keep full history for 1 year, then roll older events up into per-item summary counters). Compaction is a deterministic `core` function, so every device produces the same result.
+**Event growth:** events are compacted after a configurable horizon (default: keep full history for 1 year). `compactHistory` replays every event older than the cutoff and stores the result as the bucket's `baseline` (per-item state at the cutoff: status, who holds it, counts, last times, cooldown end, cycle flags), then deletes those events. Derived state is exactly what it was before. The cutoff is rounded down to the start of a UTC month, so devices that compact on different days choose the same boundary and write identical results. Limit: an event that arrives later with a time before the cutoff (a device offline for longer than the horizon) is replayed on top of the baseline instead of in its true place.
 
 ## 6. The draw engine (`@buckets/core`)
 
@@ -301,7 +325,7 @@ Scheduled draws, which `rules.schedule` handled in v0.1, are now reminders with 
 
 ### 6.2 Algorithm
 
-`draw(bucket, memberId, now, rng): DrawResult` is a **pure function**. It never mutates input and returns either the new events or a typed refusal (`"locked"`, `"hand-full"`, `"empty"`, `"all-cooling-down"`, `"not-permitted"`) with data the UI uses to explain itself (for example, "Next item available in 3 h 12 m").
+`draw(bucket, request): DrawResult` is a **pure function**; `request` carries `memberId`, `deviceId`, `now`, `rng` and `makeId` (an id source for the events). `checkDraw(bucket, memberId, now)` runs steps 1–4 without randomness. It never mutates input and returns either the new events or a typed refusal (`"locked"`, `"hand-full"`, `"empty"`, `"all-cooling-down"`, `"not-permitted"`) with data the UI uses to explain itself (for example, "Next item available in 3 h 12 m").
 
 1. **Permission:** The member's role must allow drawing (owner, editor, or drawer).
 2. **Gate:** Count the items in hand within `inHandScope`. If `lockUntilResolved` and the count is above 0, refuse with `locked`. If the count plus `drawCount` would exceed `maxInHand`, draw only what fits, or refuse with `hand-full`.
@@ -309,7 +333,16 @@ Scheduled draws, which `rules.schedule` handled in v0.1, are now reminders with 
 4. **No-repeat filter:** When `noRepeat` is on, keep the items not yet drawn this cycle, plus any whose last completion is older than `cycleResetAfter`. If nothing is left but the bucket isn't empty, emit `cycle-reset` and use the whole eligible pool.
 5. **Weights:** `uniform` gives every item 1. `weighted` uses `item.weight`. `aging` uses `weight × (1 + rate × daysSinceLastDrawn)`. `favorUndrawn` multiplies never-drawn-this-cycle items by a configurable factor (default 3).
 6. **Select** `n` items without replacement. `round-robin` takes the oldest `lastDrawnAt` first, with ties broken by bucket order. All the random strategies use Efraimidis–Spirakis weighted sampling (key = u^(1/w); take the top n).
-7. **Emit** one `drawn` event per item, attributed to `memberId`.
+7. **Emit** one `drawn` event per item, attributed to `memberId`. If step 4 started a new cycle, a `cycle-reset` event comes first.
+
+Details the implementation settled:
+
+- `lockUntilResolved` and `maxInHand` count only the member's own hand when `inHandScope` is `per-member`. A draw is capped by the room left; it is refused with `hand-full` only when there is none.
+- If every candidate has weight 0, the draw falls back to chance rather than refusing.
+- `favorUndrawn` applies whenever it is on and the item has not had a turn this cycle (it does not require `noRepeat`), except in the draw that starts a new cycle.
+- `round-robin` ignores weights: never-drawn items come first in bucket order, then whoever waited longest.
+- `resolve(bucket, request)` builds the `done` or `tossed-back` event. The holder may resolve their own item; owners and editors may resolve anyone's. `requireAllSteps` refuses `done` with `steps-incomplete`. When `applyEvents` appends a `done` event for an item that returns to the bucket, and `resetStepsOnReturn` is on, it unticks the item's steps.
+- `autoReturnAt` is stored and validated (`HH:MM`) but nothing acts on it yet; see §18.
 
 **Your 10-systems example** (Rotation Pool with `noRepeat: until-cycle-complete` and `cycleResetAfter: 30 days`): You finish 6 of 10. Draws only offer the other 4. Once 30 days have passed since one of those 6 was finished, it re-enters the pool. With `favorUndrawn` on, the 4 untouched systems still come up three times as often as the re-entered ones.
 
@@ -317,7 +350,7 @@ Scheduled draws, which `rules.schedule` handled in v0.1, are now reminders with 
 
 - Production randomness comes from `crypto.getRandomValues`, which is available in browsers and all three webviews. Integers are chosen with **rejection sampling** to avoid modulo bias.
 - `Math.random` is banned by lint rule everywhere.
-- All randomness goes through a `Rng` interface. Tests inject a seeded generator (xoshiro128**) so results can be reproduced.
+- All randomness goes through a `Rng` interface with one method, `nextUint32()`. `randomFloat` builds a 53-bit float from two draws, so tiny weights keep distinct sampling keys. Tests inject `createSeededRng(seed)` (xoshiro128**, seeded through splitmix32). `core` has no DOM types, so `createCryptoRng` takes `crypto.getRandomValues` as a parameter.
 - Statistical tests: 100,000 seeded draws per strategy, checked with a chi-square test against expected frequencies at a fixed threshold. Property-based tests (fast-check) cover the invariants: draws never exceed `maxInHand`, never return ineligible items, and always terminate.
 
 ### 6.4 Bucket presets (types)
@@ -348,12 +381,12 @@ interface BucketReminder {
   enabled: boolean;
   label?: string;                          // custom notification text
   trigger:
-    | { kind: "schedule"; rrule: string; timezone: string }  // RFC 5545 RRULE, e.g. weekdays at 09:00
+    | { kind: "schedule"; rrule: string; timezone: string; startsOn?: string }  // RRULE subset, e.g. weekdays at 09:00
     | { kind: "in-hand-too-long"; after: Duration }          // "You've held 'Vacuum' for 3 days"
     | { kind: "bucket-reopens" }                             // lock or cooldown ended
     | { kind: "cycle-complete" }                             // every item has had a turn
     | { kind: "running-low"; below: number }                 // fewer than N eligible items
-    | { kind: "shared-activity"; events: SharedActivity[] }; // someone drew, finished, or added items
+    | { kind: "shared-activity"; events: SharedActivity[] }; // SharedActivity = "drew" | "finished" | "added-item"
   action: "notify" | "draw-for-me";        // draw-for-me draws automatically and notifies with the result
   delivery: { desktop: boolean; webPush: boolean; sound: boolean };
   quietHours?: { start: string; end: string };  // notifications are held, then batched
@@ -362,9 +395,13 @@ interface BucketReminder {
 }
 ```
 
+**RRULE subset.** `core` has no recurrence dependency. It supports `FREQ` of `DAILY`, `WEEKLY` or `MONTHLY`, with `INTERVAL`, `BYDAY` (weekdays only, no ordinal prefix), `BYMONTHDAY` (negative counts from the end), `BYHOUR` and `BYMINUTE` (default 00:00). Because there is no `DTSTART`, `startsOn` (`YYYY-MM-DD`) anchors an `INTERVAL` above 1 and supplies a default weekday or day of month. Anything else gets a typed error. Times are wall-clock times in `timezone`, converted with `Intl`. A time that happens twice when clocks go back fires at its first occurrence; a time that does not exist when clocks go forward fires after the gap. Full RRULE support can be revisited in M8.
+
 ### 7.2 How reminders fire
 
-- `core` exposes a pure function, `nextFireTimes(reminders, bucketStates, now)`. Platform schedulers call it and turn its results into notifications.
+- `core` exposes a pure function, `nextFireTimes(reminders, buckets, query)`, where `query` is `{ memberId, now, since, timeZone }`. It returns `{ times, problems }`: fire times earliest first (anything at or before `now` is due), and the reminders it could not evaluate (bad rule, bad time zone, bad quiet hours). Only triggers after `since` are returned, so a scheduler that was asleep still sees what it missed. Platform schedulers call it and turn its results into notifications.
+- How each trigger is read: `schedule` gives its next occurrence after `since`. `in-hand-too-long` gives one time per item the member holds. `bucket-reopens` gives the end of the cooldown when every item is resting; a lock ends when someone acts, which is an event, not a time, so it is not covered. `cycle-complete` and `running-low` fire at the time of the latest activity while their condition holds. `shared-activity` gives one entry per matching event or item added by another member. Quiet hours move delivery to the moment they end and keep the original time as `scheduledAt`; `expiresAt` drops anything delivered after it.
+- Callers must remember what they already fired (the "fired" marker below) and pass it back through `since`.
 - **Desktop:** Native notifications (Notification Center on macOS, Toast notifications on Windows, libnotify on Linux) with action buttons such as **Draw now**, **Snooze**, and **Done**. An optional **menu bar or tray agent**, which can launch at login, lets reminders fire while the main window is closed. It also offers a quick-draw menu.
 - **Web:** Notifications fire while a tab is open. When the web app is connected to a sync server (hosted or self-hosted), Web Push delivers reminders even when the tab is closed. The server receives only a fire time and an opaque reminder id; it never learns bucket names or contents. The service worker looks up the details locally when the push arrives.
 - **Deduplication:** When a user has several devices, the reminder fires once. Devices coordinate through a small "fired" marker in the library document. If several devices race to fire it anyway, the device that is currently active wins.
@@ -376,7 +413,7 @@ interface BucketReminder {
 - **`.buckets`**: one portable file containing the library, all its buckets, and attachments (a zip container holding Automerge documents and blobs). It merges losslessly.
 - **Password protection (optional):** Save As offers "Encrypt with password". This uses Argon2id key derivation (libsodium `crypto_pwhash`) and XChaCha20-Poly1305 encryption.
 - **`.buckets.json`**: a human-readable export and import format with a versioned schema, for backups and interoperability.
-- The file header includes a format version. `core` contains migration functions for every schema bump, each with tests.
+- The file header includes a format version. `core` contains migration functions for every schema bump, each with tests. Mechanism: `createMigrator({ current, steps })` builds a function that walks a stored document from its `schemaVersion` up to `current`, one step at a time (`steps[n]` turns version n into n+1). It refuses a document from a newer build (`newer-version`), a document with no usable version (`invalid-document`), a gap in the steps (`missing-step`) and a step that throws (`step-failed`), and never changes its input. `migrateBucket` and `migrateLibrary` are the two instances. Both formats are at version 1, so neither has steps yet.
 
 ### 8.2 File operations
 
@@ -784,6 +821,8 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 
 **M0 status (2026-10-30): complete.** Everything in the scope column is built, and `pnpm check` and the Tauri build passed in CI on Ubuntu, Windows and macOS. The empty window has been opened and checked by hand on macOS, Windows and Linux. The icon is a placeholder draft (`docs/design/app-icon.svg`). Next is M1.
 
+**M1 status (2026-10-30): built in `packages/core`; awaiting maintainer review.** Delivered: the data model and eight presets; role-checked commands; derived state; `checkDraw`, `draw` and `resolve`; Efraimidis–Spirakis sampling and round robin; `nextFireTimes` with the RRULE subset; history compaction; the migration mechanism; and tests (every scenario from `prototype/engine.test.js` including the 10-systems example, chi-square fairness over 100,000 seeded draws, fast-check properties, and a property test that compaction never changes derived state). Intentional differences from the prototype are listed in `docs/adr/0001-core-engine-decisions.md`. `prototype/` is untouched and still the reference until the maintainer decides whether to delete it or move it to `docs/prototype/`.
+
 **Total: about 31.5 weeks**, plus the security review's turnaround. A usable personal build without sync (M0–M4) takes about 11.5 weeks. Personal sync across your own devices is ready after M7, at about 20.5 weeks.
 
 ## 16. Risks
@@ -825,5 +864,8 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 | # | Question | Notes |
 |---|---|---|
 | 1 | What is the app's bundle identifier? | `apps/desktop/src-tauri/tauri.conf.json` uses the placeholder `com.example.buckets`. The identifier sets where the desktop app keeps its data and is used for macOS notarization and the updater, so pick a reverse-domain name you control before any release (M12 at the latest). |
+
+| 2 | What are the Daily Draw defaults? | The preset draws 3 items at a time and sends unfinished ones back at `00:00`. Both numbers are placeholders chosen during M1. |
+| 3 | When and how does `autoReturnAt` act? | M1 stores and validates the rule but nothing applies it. Returning items needs a clock tick in the user's time zone and a rule for which device writes the events when several are open. Decide before M10. |
 
 New questions go here as they come up during development (see AGENTS.md §11).
