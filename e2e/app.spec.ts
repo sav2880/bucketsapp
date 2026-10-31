@@ -53,9 +53,10 @@ test("adds one item for every pasted line", async ({ page }) => {
   await box.evaluate((input) => {
     const data = new DataTransfer();
     data.setData("text/plain", "- Hades\n- Celeste\n- Tunic");
-    input.dispatchEvent(
-      new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }),
-    );
+    // Firefox ignores `clipboardData` in the ClipboardEvent constructor, so attach it afterwards.
+    const event = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "clipboardData", { value: data });
+    input.dispatchEvent(event);
   });
   await expect.poll(() => order(page)).toEqual(["Hades", "Celeste", "Tunic"]);
 });
