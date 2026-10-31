@@ -221,6 +221,30 @@ select {
   fill: var(--art-sheen);
 }
 
+/* ---------- Things that fly (shell/motion-animator.ts) ---------- */
+
+/* A folded slip leaving the bucket on its way to becoming a card. */
+.bk-flying-slip {
+  position: fixed;
+  z-index: 50;
+  width: 34px;
+  height: 50px;
+  border-top: 5px solid var(--enamel);
+  border-radius: var(--r-s) var(--r-s) var(--r-s) var(--r-s);
+  background: var(--paper);
+  box-shadow: var(--shadow-card);
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* A picture of a card flying back to the bucket or the done pile. */
+.bk-ghost {
+  position: fixed;
+  z-index: 50;
+  margin: 0;
+  pointer-events: none;
+}
+
 /* Reduced motion (the system setting or the in-app one): nothing slides, the lid just fades. */
 .bk-art[data-reduced] .bk-slips {
   transition: none;

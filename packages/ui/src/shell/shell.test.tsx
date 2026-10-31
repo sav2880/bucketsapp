@@ -60,7 +60,7 @@ describe("an empty app", () => {
     await makeBucket("Games");
     expect(await screen.findByRole("heading", { name: "Games" })).toBeTruthy();
     expect(Object.values(store.getState().buckets).map((b) => b.name)).toEqual(["Games"]);
-    expect(screen.getByTestId<HTMLButtonElement>("draw").disabled).toBe(true);
+    expect(screen.getByTestId("draw").getAttribute("aria-disabled")).toBe("true");
     expect(screen.getByText("Nothing to draw. Add an item first.")).toBeTruthy();
   });
 
@@ -92,7 +92,7 @@ describe("drawing", () => {
       .find((li) => li.dataset["testid"]?.startsWith("hand-"));
     expect(card).toBeTruthy();
     expect(screen.getByText(/before drawing again/)).toBeTruthy();
-    expect(screen.getByTestId<HTMLButtonElement>("draw").disabled).toBe(true);
+    expect(screen.getByTestId("draw").getAttribute("aria-disabled")).toBe("true");
 
     await userEvent.click(screen.getByTestId("done"));
     await announced(/^Finished /);

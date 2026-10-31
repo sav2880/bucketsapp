@@ -12,6 +12,7 @@ import {
 import { render } from "@testing-library/react";
 import { EnvironmentProvider, type AppEnvironment } from "../src/app-environment";
 import type { ImageCodec } from "../src/images/process-image";
+import { instantAnimator, type Animator } from "../src/shell/animator";
 import { LiveRegionProvider } from "../src/live-region";
 import { LibraryProvider } from "../src/library/library-provider";
 import { Shell } from "../src/shell/shell";
@@ -59,6 +60,7 @@ export async function renderShell(
     adapter?: StorageAdapter;
     role?: MemberRole;
     imageCodec?: ImageCodec;
+    animator?: Animator;
   } = {},
 ): Promise<ShellHarness> {
   setViewportWidth(options.width ?? 1200);
@@ -81,6 +83,7 @@ export async function renderShell(
     makeId,
     blobs: createBlobStore(adapter),
     imageCodec: options.imageCodec,
+    animator: options.animator ?? instantAnimator,
     settings: createSettingsStore(adapter),
   };
   render(

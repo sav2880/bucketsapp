@@ -27,6 +27,7 @@ import {
   type ReactNode,
 } from "react";
 import type { ImageCodec } from "./images/process-image";
+import type { Animator } from "./shell/animator";
 import { useLibrary, useLibraryStore } from "./library/library-provider";
 
 /**
@@ -50,6 +51,8 @@ export interface AppEnvironment {
   makeId: () => string;
   /** Decodes and re-encodes pictures; defaults to the browser's own (tests supply a fake). */
   imageCodec?: ImageCodec | undefined;
+  /** What the bucket does on screen; defaults to the real animations (tests supply an instant one). */
+  animator?: Animator | undefined;
   /** Where picture bytes are kept. */
   blobs: BlobStore;
   /** Where per-device preferences such as pane sizes are kept. */

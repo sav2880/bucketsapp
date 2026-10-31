@@ -11,6 +11,7 @@ import { bucketVisual } from "./bucket-art-model";
 import { describeDrawRefusal, describeResolveRefusal } from "./draw-messages";
 import { ItemList } from "./item-list";
 import { HandCard } from "./hand-card";
+import { useChoreography } from "./use-choreography";
 import { iconGlyph } from "./icons";
 import { TossBackDialog } from "./toss-back-dialog";
 import { useShortcuts } from "./use-shortcuts";
@@ -76,7 +77,10 @@ function BucketPane({
 
   const inCount = states.filter((s) => s.status === "in").length;
   const restingCount = states.filter((s) => s.status === "cooling").length;
+  const choreo = useChoreography(bucket.rules.hideTitlesUntilDrawn);
   const visual = bucketVisual(refusal);
+  // The lid comes off while a slip is still leaving the bucket.
+  const lidOn = visual.lidOn && choreo.pending.size === 0;
   const inHand = states.filter((s) => s.status === "hand");
   const mine = inHand.filter((s) => s.heldBy === environment.memberId);
   const others = inHand.filter((s) => s.heldBy !== environment.memberId);
@@ -88,23 +92,32 @@ function BucketPane({
   };
 
   const drawNow = (): void => {
+    if (choreo.busy) return;
     const result = actions.draw(bucketId);
     if (!result.ok) {
       say(describeDrawRefusal(result, when));
+      choreo.refused();
       return;
     }
+    // Said at once: nobody should wait for a decorative animation to hear the result.
     const drew = t("draw.drew", { titles: result.itemIds.map(titleOf).join(", ") });
     say(result.cycleReset ? `${drew} ${t("draw.newCycle")}` : drew);
+    void choreo.drew(result.itemIds);
   };
 
   const finish = (itemId: string, kind: "done" | "tossed-back", note?: string): void => {
+    if (choreo.busy) return;
     const title = titleOf(itemId);
+    // A copy of the card is taken first: the command removes the card from the hand.
+    const shot = choreo.snapshot(itemId);
     const result = actions.resolveItem(bucketId, itemId, kind, note);
     if (!result.ok) {
+      shot?.ghost.discard();
       say(describeResolveRefusal(result));
       return;
     }
     say(t(kind === "done" ? "hand.finished" : "hand.tossed", { title }));
+    void choreo.resolved(shot, kind, bucket.rules.onDone === "remove");
   };
 
   const tossBack = (itemId: string): void => {
@@ -114,7 +127,7 @@ function BucketPane({
 
   const first = mine[0];
   useShortcuts({
-    "mod+d": refusal === undefined ? drawNow : undefined,
+    "mod+d": drawNow,
     "mod+enter": first
       ? () => {
           finish(first.item.id, "done");
@@ -169,14 +182,16 @@ function BucketPane({
           <BucketArt
             inCount={inCount}
             restingCount={restingCount}
-            lidOn={visual.lidOn}
-            mood={visual.mood}
+            lidOn={lidOn}
+            mood={choreo.mood ?? visual.mood}
+            bodyRef={choreo.bodyRef}
             label={tp("bucket.art", inCount, { name: bucket.name })}
           />
           <button
             type="button"
             onClick={drawNow}
-            disabled={refusal !== undefined}
+            // Not `disabled`: it stays focusable and a press says why it can't be used now.
+            aria-disabled={refusal !== undefined || choreo.busy}
             aria-describedby={hint === "" ? undefined : "draw-hint"}
             data-testid="draw"
             style={{
@@ -186,7 +201,7 @@ function BucketPane({
               borderRadius: "var(--r-m)",
               padding: "var(--space-2) var(--space-6)",
               fontSize: "1.1em",
-              opacity: refusal === undefined ? 1 : 0.5,
+              opacity: refusal === undefined && !choreo.busy ? 1 : 0.5,
             }}
           >
             {t("draw.button")}
@@ -212,6 +227,8 @@ function BucketPane({
               padding: 0,
               display: "grid",
               gap: "var(--space-2)",
+              // The Mystery Bag flip turns cards in 3D; this gives it depth.
+              perspective: "900px",
             }}
           >
             {[...mine, ...others].map((state) => (
@@ -237,6 +254,9 @@ function BucketPane({
                 onSelect={() => {
                   onSelectedIdsChange([state.item.id]);
                 }}
+                pending={choreo.pending.has(state.item.id)}
+                concealed={choreo.concealed.has(state.item.id)}
+                registerCard={choreo.registerCard}
               />
             ))}
           </ul>

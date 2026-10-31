@@ -23,6 +23,12 @@ export interface HandCardProps {
   onTossBack: () => void;
   /** Called when the user wants details. */
   onSelect: () => void;
+  /** Just drawn and not shown yet: the slip is still on its way. */
+  pending?: boolean;
+  /** Shown, but the title stays hidden until the card flips (Mystery Bag). */
+  concealed?: boolean;
+  /** Tells the bucket where this card is, so slips can fly to it and copies can leave from it. */
+  registerCard?: (itemId: string, element: HTMLElement | null) => void;
 }
 
 /**
@@ -40,13 +46,23 @@ export function HandCard({
   onDone,
   onTossBack,
   onSelect,
+  pending = false,
+  concealed = false,
+  registerCard,
 }: HandCardProps): ReactElement {
   const actions = useActions();
   const { item } = state;
   return (
     <li
+      ref={(element) => {
+        registerCard?.(item.id, element);
+      }}
       data-testid={`hand-${item.id}`}
+      // While the slip is on its way, or the title is still hidden, the card can't be read,
+      // reached or clicked; `inert` does all three.
+      inert={pending || concealed}
       style={{
+        opacity: pending ? 0 : undefined,
         background: "var(--paper)",
         color: "var(--paper-ink)",
         borderRadius: "var(--r-m)",
@@ -59,7 +75,13 @@ export function HandCard({
       <button
         type="button"
         onClick={onSelect}
-        style={{ all: "unset", cursor: "pointer", fontWeight: 600, fontSize: "1.15em" }}
+        style={{
+          all: "unset",
+          cursor: "pointer",
+          fontWeight: 600,
+          fontSize: "1.15em",
+          color: concealed ? "transparent" : undefined,
+        }}
       >
         {item.title}
       </button>
