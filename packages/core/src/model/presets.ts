@@ -30,7 +30,7 @@ export interface Preset {
   rules: Readonly<BucketRules>;
 }
 
-/** Every preset except `"custom"` (plan.md §6.4). Values mirror `prototype/engine.js`. */
+/** Every preset except `"custom"` (plan.md §6.4). Values mirror `docs/prototype/engine.js`, except Daily Draw, which the prototype lacks. */
 export const PRESETS: Readonly<Record<Exclude<BucketPresetId, "custom">, Preset>> = Object.freeze({
   "grab-and-go": {
     name: "Grab & Go",
@@ -84,8 +84,8 @@ export const PRESETS: Readonly<Record<Exclude<BucketPresetId, "custom">, Preset>
     summary: "A few items handed to you each day; leftovers go back overnight.",
     rules: Object.freeze({
       ...BASE_RULES,
-      drawCount: 3,
-      maxInHand: 3,
+      drawCount: 2,
+      maxInHand: 2,
       autoReturnAt: "00:00",
     }),
   },
