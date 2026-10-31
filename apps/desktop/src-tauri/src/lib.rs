@@ -3,11 +3,13 @@
 //! Buckets desktop shell.
 //!
 //! Rust here handles OS integration only (menus, window effects, plugins). Business logic
-//! belongs in TypeScript `@buckets/core` (AGENTS.md §5). M0 opens an empty window; the tray,
-//! notifications and file dialogs arrive in later milestones.
+//! belongs in TypeScript `@buckets/core` (AGENTS.md §5). The [`storage`] module reads and writes
+//! the app's data files; the tray, notifications and file dialogs arrive in later milestones.
 
 #![warn(missing_docs)]
 #![deny(clippy::unwrap_used, clippy::expect_used)]
+
+pub mod storage;
 
 /// Starts the app and blocks until the last window closes.
 ///
@@ -15,7 +17,14 @@
 ///
 /// Returns the underlying Tauri error if the runtime or window can't be created.
 pub fn run() -> Result<(), tauri::Error> {
-    tauri::Builder::default().run(tauri::generate_context!())
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            storage::storage_read,
+            storage::storage_write,
+            storage::storage_list,
+            storage::storage_remove
+        ])
+        .run(tauri::generate_context!())
 }
 
 #[cfg(test)]
@@ -41,6 +50,9 @@ mod tests {
             .as_str()
             .unwrap_or_default();
         assert!(csp.contains("default-src 'self'"));
+        // Thumbnails come from blob: URLs, and Automerge runs as WebAssembly.
+        assert!(csp.contains("img-src 'self' data: blob:"));
+        assert!(csp.contains("script-src 'self' 'wasm-unsafe-eval'"));
         Ok(())
     }
 }
