@@ -4,7 +4,7 @@
 
 Buckets holds the things you want to do: games to play, systems to maintain, chores, ideas. When you're ready, you reach in and pull one out. Different bucket types decide *how* things come out and *what happens* when you're finished.
 
-> **Status: pre-alpha.** Milestones M0 (repo foundations), M1 (draw engine) and M2 (app shell and editing) are built: you can create buckets, add items with steps, links and pictures, reorder and move them, and draw, finish and toss back, on desktop and in the browser. There is no bucket artwork or animation yet (M3), no sync (M6–M7) and no export (M4). See [plan.md](plan.md). Commands marked *not yet* below need a later milestone.
+> **Status: pre-alpha.** Milestones M0 (repo foundations), M1 (draw engine), M2 (app shell and editing) and M3 (bucket visuals) are built: you can create buckets, add items with steps, links and pictures, reorder and move them, and draw, finish and toss back, on desktop and in the browser. The bucket is drawn with paper slips, a face and a lid, and drawing, finishing and tossing back are animated (M3). There is no sync (M6–M7) and no export (M4). See [plan.md](plan.md). Commands marked *not yet* below need a later milestone.
 >
 > The feel of the app is in the clickable prototype in [`docs/prototype/`](docs/prototype/README.md): `cd docs/prototype && npm ci && npm run check`, then open `docs/prototype/dist/buckets-prototype.html`.
 
@@ -83,6 +83,7 @@ pnpm dev:desktop    # desktop app with hot reload
 | `pnpm test:coverage` | Tests with coverage thresholds enforced |
 | `pnpm check:terminology`, `pnpm check:spdx`, `pnpm check:licenses` | The repo checks on their own |
 | `pnpm test:e2e` | Builds the web app and runs the Playwright tests on Chromium, WebKit and Firefox. First time: `pnpm exec playwright install chromium webkit firefox` (Linux: add `--with-deps`) |
+| `pnpm measure:frames` | Plays a draw and a finish with the CPU slowed down and reports frame times (Chromium; not part of `pnpm check`) |
 | `pnpm test:rust` | `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`, `cargo deny check` |
 | `pnpm build:web` | Production web build in `apps/web/dist` (no service worker or offline install until M7) |
 | `pnpm build:desktop` | Builds the desktop app for the current OS. Installers (`.dmg`, `.msi`, `.deb` and so on) are switched off until M12; for now the binary lands in `apps/desktop/src-tauri/target/release/` |

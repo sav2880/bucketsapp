@@ -2,11 +2,17 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.8 (M0 complete; M1 draw engine built; M2 app shell and editing built, awaiting maintainer review) |
+| **Status** | Draft v0.9 (M0 complete; M1 draw engine, M2 app shell and editing, and M3 bucket visuals built, awaiting maintainer review) |
 | **Last updated** | 2026-10-31 |
 | **Platforms** | Web (offline-capable PWA), Windows 10 21H2+ / 11, macOS 12+, Linux: Ubuntu 22.04+, Fedora 39+, or equivalent (x64 + arm64) |
 | **Stack** | Tauri 2 + React + TypeScript, Automerge (CRDT), end-to-end encrypted sync |
 | **License** | Apache-2.0 (apps and packages) · AGPL-3.0-only (`server/`) |
+
+### Changes in v0.9
+
+- M3 is built: the SVG bucket with paper slips, a face and a lid; draw, return, toss-back and finish animations with Motion; the paper card, the done pile, the explanation over the bucket, reduced motion, and tests (§12.3, §15).
+- §12.3a records what M3 settled: the animation sequence, the face, the lid rules, announcements before animations, the busy lock, the tooltip and the Motion setting. §12.7 notes that the Draw button stays pressable when it can't draw.
+- Decisions 22–25 (§17). New risk about very large buckets (§16). ADR: `docs/adr/0003-m3-bucket-visuals.md`. A usability script for the 3–5 person check is in `docs/design/m3-usability-check.md`.
 
 ### Changes in v0.8
 
@@ -715,6 +721,20 @@ A three-pane, macOS-style window:
 - Animations use Motion (Framer Motion). Respects `prefers-reduced-motion`, which switches to simple fades. Sound effects are optional and off by default.
 - In cooldown or locked states, the bucket looks covered (a lid). Hovering explains why and when it opens.
 
+### 12.3a What M3 built
+
+- **The drawing:** an enamel pail in the bucket's own color (shades are mixed from one color in CSS, so every color and both themes work), with up to 12 folded slips poking out (higher when fuller) and up to 3 grey slips for items that are cooling down. It has a face: idle, surprised (right after a draw), happy (after finishing), waiting, asleep and "no".
+- **Lid and face:** the lid is on when drawing isn't possible right now (locked, hand full, everything cooling down, or no permission) and off for an empty bucket. Asleep means everything is resting; waiting means something has to be finished first.
+- **Sequence:** the data changes first, then the animation covers the already-changed view. A draw rocks the bucket, flies a slip to the card, and settles the card. Mystery Bag adds a flip that reveals the title. Tossing back flies a copy of the card to the bucket and the bucket squashes; finishing flies it to the done pile (or squashes the bucket when there is no pile). A refused draw shakes the bucket and shows the "no" face.
+- **Announcements come first:** the live-region message is made at once, not when the animation ends, so nobody waits on a decorative effect. The flying pieces are hidden from assistive technology, and a card is inert (unreadable and unreachable) while its slip is on the way or its title is hidden.
+- **One lock:** while a sequence runs, a second draw, finish or toss back is ignored, and the Draw button looks and reports as unavailable. A safety timeout (6 s) releases the lock if an animation ever fails to finish. Animation failures are swallowed: the data is already right.
+- **Reduced motion** (the system setting, or the in-app Motion choice of follow the system, reduce, or allow): nothing flies, rocks or flips. Cards fade in, copies fade out, and the lid fades instead of sliding. The in-app choice is kept per device and lives in the bucket details until there is an app settings dialog.
+- **Done pile:** a chip with the count of finished items, shown on buckets that remove finished items and on any bucket once something is done. Pressing it scrolls to the list.
+- **Explanation over the bucket:** hovering the drawing, or keyboard-focusing the Draw button (not after a mouse click), shows why the lid is on and when it opens; Escape hides it. It repeats the line that is always under the button, so it is drawn by CSS and kept out of the page text and hidden from screen readers.
+- **Under the Draw button:** what is ready ("2 items inside.", "2 folded slips inside. No peeking.", "2 of 3 are waiting for a turn this round."), or why drawing isn't possible. The button reads "Draw 2" when a draw takes more than one item.
+- **Performance:** only `transform` and `opacity` are animated. `pnpm measure:frames` (Chromium, CPU slowed 1×, 4×, 6×) held 16.7 ms frames with no frame over 20 ms on a 5-item bucket. With 500 items the animation stays smooth but the list's re-render causes occasional stalls (§16).
+- **Deferred:** holder avatars and other members' draws animating in live (needs members, M9), and optional sound effects (off by default whenever added).
+
 ### 12.4 Adding and editing items
 
 - The contents list works like Apple Reminders. You type on an empty row and press Return to add the next item. Other details:
@@ -747,7 +767,7 @@ Light and dark modes follow the system everywhere. The overall design leans macO
 ### 12.7 Keyboard and accessibility
 
 - **Shortcuts** (Ctrl instead of ⌘ on Windows, Linux, and the web): ⌘N new item, ⇧⌘N new bucket, ⌘D draw, ⌘↩ done, ⌘⌫ toss back, ⌘S save, ⇧⌘S save as, ⌘E export, ⌘, settings.
-- **Keyboard and screen readers:** Everything is reachable by keyboard. Drawn items and shared activity are announced to screen readers through an ARIA live region. The app is tested with VoiceOver, Narrator, and Orca.
+- **Keyboard and screen readers:** The Draw button is `aria-disabled`, not `disabled`, when a draw isn't possible, so it stays focusable and pressing it says why. Everything is reachable by keyboard. Drawn items and shared activity are announced to screen readers through an ARIA live region. The app is tested with VoiceOver, Narrator, and Orca.
 - **Contrast:** WCAG 2.2 AA contrast in both themes. Images require alt text prompts.
 - All strings live in locale files from day one (English first).
 
@@ -849,6 +869,8 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 
 **M2 status (2026-10-31): built; awaiting maintainer review.** Delivered: new core commands for editing, links, pictures, moving items and bucket settings; `packages/storage` (adapters for memory, IndexedDB and Tauri files, a picture store, settings and the Automerge library store); atomic file commands in Rust; the shell, a plain draw loop, the inspector, the item list and pictures in `packages/ui`; both apps wired to it; and Playwright tests. Still to do by hand: open the desktop window on each OS and confirm the library loads under the content security policy (`wasm-unsafe-eval` was added for Automerge) and survives a relaunch; check pane dragging and the picture pipeline in real windows; the Firefox Playwright run (it couldn't launch on the maintainer's Mac, so CI is its first run); a pass with a screen reader on the item list. Known gaps: the bucket is still a placeholder shape with no artwork or animation (the prototype's SVG bucket, slips and animations are ported in M3, §12.3); links can't be opened from the desktop app, HEIC decodes only where the engine can, and unreferenced pictures are not cleaned up until M4. Next is M3.
 
+**M3 status (2026-10-31): built; awaiting maintainer review.** Delivered: the bucket drawing, the animations, the paper card, the done pile, the explanation over the bucket, reduced motion and the in-app Motion setting (§12.3a), with unit, component and Playwright tests (including a 500-item bucket and reduced motion) and a frame-rate measurement. Still to do by hand: the usability check with 3–5 people (`docs/design/m3-usability-check.md`), the 60 fps check on modest real hardware (`pnpm measure:frames` only simulates a slow CPU), a look at every bucket color in both themes, and a screen-reader pass over the draw announcement. Known gaps: avatars and live draws by other members (M9), sound effects (not planned yet), and the item list re-rendering all rows on each change, which shows as stalls in very large buckets (§16). Next is M4.
+
 **Total: about 31.5 weeks**, plus the security review's turnaround. A usable personal build without sync (M0–M4) takes about 11.5 weeks. Personal sync across your own devices is ready after M7, at about 20.5 weeks.
 
 ## 16. Risks
@@ -865,6 +887,7 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 | Linux tray and notification support varies (GNOME needs an AppIndicator extension) | Reminders may not fire while the window is closed | Detect support; fall back to "keep running in background" with a visible window; document it |
 | Web Push on iOS needs the PWA added to the Home Screen | Fewer iPhone users get reminders | Prompt iOS users to install the PWA |
 | Code-signing costs and setup | Unsigned builds trigger OS warnings | Budget for an Apple Developer account (US$99/yr) and a Windows signing certificate; ship unsigned dev builds until then |
+| A very large bucket (hundreds of items) re-renders its whole list on every change | Stalls of up to about 50 ms per draw or finish at 500 items on a fast machine, longer on slow ones (animations themselves stay smooth) | Virtualize the item list (render only visible rows) before it matters; found by `pnpm measure:frames`; revisit in M4 when files and import make big buckets likely |
 | Name conflict | Possible trademark issue | An existing budgeting app is also called "Buckets". Check trademarks before a public release. |
 
 ## 17. Decision log
@@ -892,6 +915,10 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 | 19 | Pictures before encryption | Plain bytes stored by SHA-256 until M5, then re-keyed; cleanup deferred to M4 | §5, §8.5, M4, M5 |
 | 20 | Picture pipeline | Up to 10 MB, scaled to 2,560 px and re-encoded in the browser, which strips EXIF; animated GIF keeps its first frame; HEIC only where decodable | §12.4a |
 | 21 | Bundle identifier for development | `dev.buckets.app.dev` until a real one is chosen (open question 1) | §18 |
+| 22 | Animation library | Motion (`motion` 14.x, MIT) drives the animations, behind an `Animator` interface so the sequencing is tested without a browser | §12.3a; ADR 0003 |
+| 23 | Announcements and animation | The result is announced at once, before the animation; the animation is hidden from assistive technology | §12.3a, §12.7 |
+| 24 | The Draw button | `aria-disabled` rather than `disabled`, so it can be focused and pressed to hear why drawing isn't possible | §12.7 |
+| 25 | The bucket's face | Kept from the prototype (idle, surprised, happy, waiting, asleep, "no") | §12.3a |
 
 ## 18. Open questions
 

@@ -15,7 +15,7 @@ pnpm check
 
 ## Browser tests
 
-`pnpm test:e2e` builds the web app and runs the Playwright tests in `e2e/`. Install the browsers once with `pnpm exec playwright install chromium webkit firefox` (on Linux add `--with-deps`). Playwright drives its own Firefox build, so an installed Firefox can't stand in for it. Use `data-testid` or roles and labels, never CSS selectors.
+`pnpm test:e2e` builds the web app and runs the Playwright tests in `e2e/`. Install the browsers once with `pnpm exec playwright install chromium webkit firefox` (on Linux add `--with-deps`). Playwright drives its own Firefox build, so an installed Firefox can't stand in for it. Use `data-testid` or roles and labels, never CSS selectors. `pnpm measure:frames` is an optional measurement of animation frame times, not part of the gate.
 
 ## Rules that trip people up
 
