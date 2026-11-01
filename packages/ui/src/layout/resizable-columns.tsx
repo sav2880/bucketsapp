@@ -31,6 +31,11 @@ export interface ResizableColumnsProps {
    * missing, double-click goes back to the default width.
    */
   measure?: ((columnId: string) => number) | undefined;
+  /**
+   * How many rows the table has in all, header included, when only some are drawn (a long list
+   * that shows just the rows on screen). Lets screen readers announce "row 40 of 500".
+   */
+  rowCount?: number | undefined;
   /** Rows. They line up with the header by using `grid-template-columns: var(--columns)`. */
   children: ReactNode;
 }
@@ -50,6 +55,7 @@ export function ResizableColumns({
   widths,
   onWidthsChange,
   measure,
+  rowCount,
   children,
 }: ResizableColumnsProps): ReactElement {
   const root = useRef<HTMLDivElement>(null);
@@ -144,8 +150,8 @@ export function ResizableColumns({
   };
 
   return (
-    <div ref={root} style={style} role="table" data-testid="columns">
-      <div role="row" style={rowStyle}>
+    <div ref={root} style={style} role="table" aria-rowcount={rowCount} data-testid="columns">
+      <div role="row" aria-rowindex={rowCount === undefined ? undefined : 1} style={rowStyle}>
         {columns.map((spec, i) => (
           <div key={spec.id} role="columnheader" style={headStyle}>
             {spec.label}

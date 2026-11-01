@@ -43,7 +43,7 @@ All animation is `transform` and `opacity`, so the browser can run it off the ma
 
 ## Consequences and known gaps
 
-- **Large buckets:** with 500 items the animation stays smooth, but each draw or finish re-renders every list row, giving stalls of about 50 ms (417 ms with the CPU slowed 6×). The fix is to virtualize the list, which is deferred (plan.md §16).
+- **Large buckets:** with 500 items the animation stayed smooth, but each draw or finish re-rendered every list row, giving stalls of about 50 ms (417 ms with the CPU slowed 6×). This was fixed straight after M3 by drawing only the visible rows (plan.md §12.4b), with `@tanstack/react-virtual` added for it. At 500 items there are now no frames over 20 ms at normal speed, and two short stalls (117 ms and 200 ms) at 4× and 6× slower, which are data work rather than drawing.
 - **Not simulated by jsdom:** `:focus-visible` and real animation. The click-versus-keyboard behavior of the explanation and the sequences are checked by Playwright on Chromium and WebKit (Firefox runs in CI; WebKit skips the Tab test because Safari doesn't Tab onto buttons by default).
 - **Deferred:** holder avatars and live draws by other members (M9); optional sound effects.
 - **Human checks remain:** the usability sessions (`docs/design/m3-usability-check.md`) and the frame-rate check on modest real hardware.

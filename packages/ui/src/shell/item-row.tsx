@@ -32,6 +32,10 @@ export interface ItemRowProps {
   onDragOver: (event: DragEvent<HTMLElement>) => void;
   /** Called when something is dropped on this row. */
   onDrop: (event: DragEvent<HTMLElement>) => void;
+  /** Called when a drag that started on this row ends, wherever it was dropped. */
+  onDragEnd: (event: DragEvent<HTMLElement>) => void;
+  /** The row's place in the table, counting the header as row 1 (screen readers announce it). */
+  rowIndex: number;
 }
 
 const cell = { padding: "var(--space-2)", minWidth: 0 } as const;
@@ -57,6 +61,8 @@ export function ItemRow({
   onDragStart,
   onDragOver,
   onDrop,
+  onDragEnd,
+  rowIndex,
 }: ItemRowProps): ReactElement {
   const actions = useActions();
   const { item } = state;
@@ -65,6 +71,7 @@ export function ItemRow({
   return (
     <div
       role="row"
+      aria-rowindex={rowIndex}
       tabIndex={0}
       aria-selected={selected}
       draggable={canEdit && !hidden}
@@ -74,6 +81,7 @@ export function ItemRow({
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDrop={onDrop}
+      onDragEnd={onDragEnd}
       style={{
         display: "grid",
         gridTemplateColumns: "var(--columns)",

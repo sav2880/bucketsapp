@@ -165,6 +165,8 @@ export const focusRing = "0 0 0 3px color-mix(in srgb, var(--accent) 38%, transp
 export const sizes = {
   /** Height of the toolbar above each pane. */
   toolbarH: "58px",
+  /** A guess at the height in pixels of one list row, used until the real height is measured. */
+  listRowEstimate: 36,
 } as const;
 
 /** Corner radii. */

@@ -27,6 +27,8 @@ export interface StepRowProps {
   canTick: boolean;
   /** Where focus goes after Enter, so the user can keep typing. */
   addInputRef: RefObject<HTMLInputElement | null>;
+  /** The row's place in the table, counting the header as row 1 (screen readers announce it). */
+  rowIndex: number;
 }
 
 /**
@@ -43,6 +45,7 @@ export function StepRow({
   canEdit,
   canTick,
   addInputRef,
+  rowIndex,
 }: StepRowProps): ReactElement {
   const actions = useActions();
   const announce = useAnnounce();
@@ -68,6 +71,7 @@ export function StepRow({
   return (
     <div
       role="row"
+      aria-rowindex={rowIndex}
       data-testid={`step-${step.id}`}
       style={{
         display: "grid",

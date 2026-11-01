@@ -12,7 +12,7 @@
 
 - M3 is built: the SVG bucket with paper slips, a face and a lid; draw, return, toss-back and finish animations with Motion; the paper card, the done pile, the explanation over the bucket, reduced motion, and tests (§12.3, §15).
 - §12.3a records what M3 settled: the animation sequence, the face, the lid rules, announcements before animations, the busy lock, the tooltip and the Motion setting. §12.7 notes that the Draw button stays pressable when it can't draw.
-- Decisions 22–26 (§17); the bundle identifier is now `io.github.sav2880.buckets` (decision 21) and §18 has no open questions. New risk about very large buckets (§16). ADR: `docs/adr/0003-m3-bucket-visuals.md`. A usability script for the 3–5 person check is in `docs/design/m3-usability-check.md`.
+- Decisions 22–26 (§17); the item list now draws only visible rows (§12.4b); the bundle identifier is now `io.github.sav2880.buckets` (decision 21) and §18 has no open questions. New risk about very large buckets (§16). ADR: `docs/adr/0003-m3-bucket-visuals.md`. A usability script for the 3–5 person check is in `docs/design/m3-usability-check.md`.
 
 ### Changes in v0.8
 
@@ -732,7 +732,7 @@ A three-pane, macOS-style window:
 - **Done pile:** a chip with the count of finished items, shown on buckets that remove finished items and on any bucket once something is done. Pressing it scrolls to the list.
 - **Explanation over the bucket:** hovering the drawing, or keyboard-focusing the Draw button (not after a mouse click), shows why the lid is on and when it opens; Escape hides it. It repeats the line that is always under the button, so it is drawn by CSS and kept out of the page text and hidden from screen readers.
 - **Under the Draw button:** what is ready ("2 items inside.", "2 folded slips inside. No peeking.", "2 of 3 are waiting for a turn this round."), or why drawing isn't possible. The button reads "Draw 2" when a draw takes more than one item.
-- **Performance:** only `transform` and `opacity` are animated. `pnpm measure:frames` (Chromium, CPU slowed 1×, 4×, 6×) held 16.7 ms frames with no frame over 20 ms on a 5-item bucket. With 500 items the animation stays smooth but the list's re-render causes occasional stalls (§16).
+- **Performance:** only `transform` and `opacity` are animated. `pnpm measure:frames` (Chromium, CPU slowed 1×, 4×, 6×) held 16.7 ms frames with no frame over 20 ms on a 5-item bucket. The item list draws only the rows on screen (§12.4b), which took a 500-item bucket from stalls of up to 50 ms (417 ms with the CPU slowed 6×) to none at normal speed and two short ones at 4× and 6× slower.
 - **Deferred:** holder avatars and other members' draws animating in live (needs members, M9), and optional sound effects (off by default whenever added).
 
 ### 12.4 Adding and editing items
@@ -745,6 +745,16 @@ A three-pane, macOS-style window:
 - **Links:** Pasting a URL into the notes or the inspector turns it into a link chip.
 - **Images:** Drag and drop, paste, or use the file picker. Images show as thumbnails in the inspector and a small badge on the row. Clicking one opens a lightbox. Alt text is prompted for.
 - **In-hand cards** show the item's steps, so you can tick them off right where you're working.
+
+### 12.4b Long lists
+
+The item list draws only the rows near the screen, plus a few either side, using `@tanstack/react-virtual` (MIT) inside the bucket pane's own scrolling. Rows differ in height (an item and its steps) and are measured once drawn. Rules that came with it:
+
+- **Small lists and tests draw every row.** Windowing switches on only when the pane has a measurable height.
+- **A row being edited or dragged stays drawn,** even when scrolled out of range, so a half-typed title isn't lost and a drag isn't cancelled. It is released when focus leaves (with bubbling focus handlers: a capturing handler would remove the row before its own blur handler could save the title).
+- **Arrow keys carry on** past the rows that are drawn: the list scrolls to the next row and then focuses it.
+- **Screen readers hear the whole table.** The table's `aria-rowcount` counts every row (header, items and steps) and each drawn row has its `aria-rowindex`.
+- **Selection is by id,** so a Shift-click range can include rows that are not drawn.
 
 ### 12.5 Reminders and sharing UI
 
@@ -869,7 +879,7 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 
 **M2 status (2026-10-31): built; awaiting maintainer review.** Delivered: new core commands for editing, links, pictures, moving items and bucket settings; `packages/storage` (adapters for memory, IndexedDB and Tauri files, a picture store, settings and the Automerge library store); atomic file commands in Rust; the shell, a plain draw loop, the inspector, the item list and pictures in `packages/ui`; both apps wired to it; and Playwright tests. Still to do by hand: open the desktop window on each OS and confirm the library loads under the content security policy (`wasm-unsafe-eval` was added for Automerge) and survives a relaunch; check pane dragging and the picture pipeline in real windows; the Firefox Playwright run (it couldn't launch on the maintainer's Mac, so CI is its first run); a pass with a screen reader on the item list. Known gaps: the bucket is still a placeholder shape with no artwork or animation (the prototype's SVG bucket, slips and animations are ported in M3, §12.3); links can't be opened from the desktop app, HEIC decodes only where the engine can, and unreferenced pictures are not cleaned up until M4. Next is M3.
 
-**M3 status (2026-10-31): built; awaiting maintainer review.** Delivered: the bucket drawing, the animations, the paper card, the done pile, the explanation over the bucket, reduced motion and the in-app Motion setting (§12.3a), with unit, component and Playwright tests (including a 500-item bucket and reduced motion) and a frame-rate measurement. Still to do by hand: the usability check with 3–5 people (`docs/design/m3-usability-check.md`), the 60 fps check on modest real hardware (`pnpm measure:frames` only simulates a slow CPU), a look at every bucket color in both themes, and a screen-reader pass over the draw announcement. Known gaps: avatars and live draws by other members (M9), sound effects (not planned yet), and the item list re-rendering all rows on each change, which shows as stalls in very large buckets (§16). Next is M4.
+**M3 status (2026-10-31): built; awaiting maintainer review.** Delivered: the bucket drawing, the animations, the paper card, the done pile, the explanation over the bucket, reduced motion and the in-app Motion setting (§12.3a), with unit, component and Playwright tests (including a 500-item bucket and reduced motion) and a frame-rate measurement. Still to do by hand: the usability check with 3–5 people (`docs/design/m3-usability-check.md`), the 60 fps check on modest real hardware (`pnpm measure:frames` only simulates a slow CPU), a look at every bucket color in both themes, and a screen-reader pass over the draw announcement. Known gaps: avatars and live draws by other members (M9), sound effects (not planned yet), and some data-work stalls in buckets of hundreds of items on a much slower CPU (§16). Next is M4.
 
 **Total: about 31.5 weeks**, plus the security review's turnaround. A usable personal build without sync (M0–M4) takes about 11.5 weeks. Personal sync across your own devices is ready after M7, at about 20.5 weeks.
 
@@ -887,7 +897,7 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 | Linux tray and notification support varies (GNOME needs an AppIndicator extension) | Reminders may not fire while the window is closed | Detect support; fall back to "keep running in background" with a visible window; document it |
 | Web Push on iOS needs the PWA added to the Home Screen | Fewer iPhone users get reminders | Prompt iOS users to install the PWA |
 | Code-signing costs and setup | Unsigned builds trigger OS warnings | Budget for an Apple Developer account (US$99/yr) and a Windows signing certificate; ship unsigned dev builds until then |
-| A very large bucket (hundreds of items) re-renders its whole list on every change | Stalls of up to about 50 ms per draw or finish at 500 items on a fast machine, longer on slow ones (animations themselves stay smooth) | Virtualize the item list (render only visible rows) before it matters; found by `pnpm measure:frames`; revisit in M4 when files and import make big buckets likely |
+| A very large bucket (hundreds of items) re-renders its whole list on every change | Stalls of up to about 50 ms per draw or finish at 500 items | **Mitigated:** the list draws only visible rows (`@tanstack/react-virtual`, §12.4b). What remains at 4–6× slower CPUs is data work (Automerge and deriving item states); re-measure with `pnpm measure:frames` when files and import make buckets of thousands likely (M4) |
 | Name conflict | Possible trademark issue | An existing budgeting app is also called "Buckets". Check trademarks before a public release. |
 
 ## 17. Decision log

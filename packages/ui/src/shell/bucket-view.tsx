@@ -94,6 +94,7 @@ function BucketPane({
   const doneCount = states.filter((s) => s.status === "done").length;
   const showPile = bucket.rules.onDone === "remove" || doneCount > 0;
   const listRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLElement>(null);
   const reducedMotion = useMotionPreference();
   // The lid comes off while a slip is still leaving the bucket.
   const lidOn = visual.lidOn && !drawing;
@@ -161,6 +162,7 @@ function BucketPane({
 
   return (
     <main
+      ref={scrollRef}
       aria-label={bucket.name}
       style={{
         ...bucketColorVariables(bucket.color, dark ? "dark" : "light"),
@@ -301,6 +303,7 @@ function BucketPane({
             canEdit={role === "owner" || role === "editor"}
             canTick={canResolve}
             addInputRef={addInputRef}
+            scrollRef={scrollRef}
           />
         </div>
       </div>

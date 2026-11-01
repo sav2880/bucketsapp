@@ -100,8 +100,8 @@ test.describe("with motion", () => {
     await page.getByTestId("draw").click();
     await settled(page);
     await page.getByTestId("toss-back").click();
-    const confirm = page.getByRole("dialog");
-    if (await confirm.isVisible()) await confirm.getByRole("button", { name: "Toss back" }).click();
+    // Tossing back always asks first; wait for the question rather than hoping it has appeared.
+    await page.getByRole("dialog").getByRole("button", { name: "Toss back" }).click();
     await expect(page.getByTestId("notice")).toContainText("Tossed back Hades");
     await expect.poll(() => page.locator(".bk-ghost").count(), { timeout: 4000 }).toBe(0);
     await expect(card(page)).toHaveCount(0);
@@ -184,9 +184,11 @@ test.describe("with motion", () => {
       page,
       Array.from({ length: 500 }, (_, i) => `Item ${String(i + 1)}`),
     );
-    await expect(page.getByRole("textbox", { name: /^Title of / })).toHaveCount(500, {
+    // Only the rows near the screen are drawn; the table still counts all 500 (and its header).
+    await expect(page.getByTestId("columns")).toHaveAttribute("aria-rowcount", "501", {
       timeout: 20_000,
     });
+
     await page.getByTestId("draw").click();
     await settled(page);
     expect((await flights(page)).slips).toBe(1);

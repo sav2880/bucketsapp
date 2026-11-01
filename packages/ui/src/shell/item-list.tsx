@@ -9,6 +9,7 @@ import {
   type ItemState,
 } from "@buckets/core";
 import {
+  useEffect,
   useRef,
   useState,
   type ClipboardEvent,
@@ -30,7 +31,9 @@ import { titleHidden } from "./draw-messages";
 import { ItemRow } from "./item-row";
 import { moveBefore, moveBy, nextSelection, titlesFromPaste } from "./list-ordering";
 import { StepRow } from "./step-row";
+import { sizes } from "../tokens/index";
 import { usePlatform } from "../hooks/use-platform";
+import { useWindowedRows } from "./use-windowed-rows";
 
 /** The data type that marks a drag of items from this list. */
 export const ITEMS_DRAG_TYPE = "application/x-buckets-items";
@@ -59,6 +62,11 @@ export interface ItemListProps {
   canTick: boolean;
   /** Lets the shell focus the "add an item" box. */
   addInputRef: RefObject<HTMLInputElement | null>;
+  /**
+   * The element that scrolls the list (the bucket pane). A long list draws only the rows that
+   * are on screen; without it, or where nothing can be measured, every row is drawn.
+   */
+  scrollRef: RefObject<HTMLElement | null>;
 }
 
 const COLUMNS: ColumnSpec[] = [
@@ -95,6 +103,7 @@ export function ItemList({
   canEdit,
   canTick,
   addInputRef,
+  scrollRef,
 }: ItemListProps): ReactElement {
   const actions = useActions();
   const announce = useAnnounce();
@@ -105,6 +114,12 @@ export function ItemList({
   const [dropBefore, setDropBefore] = useState<string | null | undefined>(undefined);
   const [deleting, setDeleting] = useState(false);
   const anchor = useRef<string | undefined>(undefined);
+  const rowsRef = useRef<HTMLDivElement>(null);
+  // Rows that must stay drawn even when scrolled out of view: the one being edited, the one
+  // being dragged (a dragged row that disappears cancels the drag), and one about to get focus.
+  const [focusedId, setFocusedId] = useState<string | undefined>(undefined);
+  const [draggingId, setDraggingId] = useState<string | undefined>(undefined);
+  const pendingFocus = useRef<string | undefined>(undefined);
 
   const byId = new Map(states.map((s) => [s.item.id, s]));
   const ordered = bucket.itemOrder.flatMap((id) => {
@@ -112,6 +127,53 @@ export function ItemList({
     return state ? [state] : [];
   });
   const order = ordered.map((s) => s.item.id);
+  const selected = new Set(selectedIds);
+  // Where each item's row sits in the table (the header is row 1), for screen readers.
+  const rowStart: number[] = [];
+  let totalRows = 1;
+  for (const state of ordered) {
+    rowStart.push(totalRows + 1);
+    totalRows += 1 + (titleHidden(bucket, state.status) ? 0 : state.item.steps.length);
+  }
+  const windowing = useWindowedRows({
+    count: ordered.length,
+    scrollRef,
+    listRef: rowsRef,
+    estimate: (index) => {
+      const state = ordered[index];
+      const rows =
+        1 +
+        (state === undefined || titleHidden(bucket, state.status) ? 0 : state.item.steps.length);
+      return rows * sizes.listRowEstimate;
+    },
+    keep: [focusedId, draggingId]
+      .filter((id): id is string => id !== undefined)
+      .map((id) => order.indexOf(id)),
+  });
+
+  /** Moves focus to an item's row, scrolling to it first when it isn't drawn. */
+  const focusItem = (id: string): void => {
+    const row = document.querySelector<HTMLElement>(`[data-testid="item-${id}"]`);
+    if (row) {
+      row.focus();
+      return;
+    }
+    const index = order.indexOf(id);
+    if (index < 0) return;
+    // Keeping it drawn is what lets it be found once the scroll has brought it into range.
+    pendingFocus.current = id;
+    setFocusedId(id);
+    windowing.scrollToIndex(index);
+  };
+  // Once the row has been drawn, give it the focus that was asked for.
+  useEffect(() => {
+    const id = pendingFocus.current;
+    if (id === undefined) return;
+    const row = document.querySelector<HTMLElement>(`[data-testid="item-${id}"]`);
+    if (row === null) return;
+    pendingFocus.current = undefined;
+    row.focus();
+  });
   const columns = COLUMNS.map((c) => ({ ...c, label: t(c.label as "list.name") }));
   const others = library.bucketOrder.filter((id) => id !== bucket.id && buckets[id] !== undefined);
 
@@ -166,8 +228,7 @@ export function ItemList({
     } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
       event.preventDefault();
       const next = order[index + (event.key === "ArrowUp" ? -1 : 1)];
-      if (next !== undefined)
-        document.querySelector<HTMLElement>(`[data-testid="item-${next}"]`)?.focus();
+      if (next !== undefined) focusItem(next);
     } else if (
       (event.key === "Delete" || event.key === "Backspace") &&
       canEdit &&
@@ -272,18 +333,44 @@ export function ItemList({
         widths={widths}
         onWidthsChange={setWidths}
         measure={measure}
+        rowCount={windowing.windowed ? totalRows : undefined}
       >
-        <div role="rowgroup">
-          {ordered.map((state) => {
+        <div
+          ref={rowsRef}
+          role="rowgroup"
+          style={windowing.containerStyle}
+          // Bubbling handlers, not capturing ones: React draws the result of a capturing
+          // handler before the row's own blur handler runs, which would remove the row (and
+          // lose a half-typed title) before it could save.
+          onFocus={(event) => {
+            const id = (event.target as Element)
+              .closest("[data-item-id]")
+              ?.getAttribute("data-item-id");
+            setFocusedId(id ?? undefined);
+          }}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) setFocusedId(undefined);
+          }}
+        >
+          {windowing.rows.map(({ index, style }) => {
+            const state = ordered[index];
+            if (state === undefined) return null;
             const { item } = state;
             const hidden = titleHidden(bucket, state.status);
             return (
-              <div key={item.id}>
+              <div
+                key={item.id}
+                ref={windowing.measureRef}
+                data-index={index}
+                data-item-id={item.id}
+                style={style}
+              >
                 <ItemRow
                   bucketId={bucket.id}
                   state={state}
                   hidden={hidden}
-                  selected={selectedIds.includes(item.id)}
+                  rowIndex={rowStart[index] ?? index + 2}
+                  selected={selected.has(item.id)}
                   dropTarget={dropBefore === item.id}
                   canEdit={canEdit}
                   addInputRef={addInputRef}
@@ -300,6 +387,11 @@ export function ItemList({
                     };
                     e.dataTransfer.setData(ITEMS_DRAG_TYPE, JSON.stringify(payload));
                     e.dataTransfer.effectAllowed = "move";
+                    setDraggingId(item.id);
+                  }}
+                  onDragEnd={() => {
+                    setDraggingId(undefined);
+                    setDropBefore(undefined);
                   }}
                   onDragOver={(e) => {
                     if (!canEdit || !carriesItems(e)) return;
@@ -321,9 +413,10 @@ export function ItemList({
                   }}
                 />
                 {!hidden &&
-                  item.steps.map((step) => (
+                  item.steps.map((step, stepIndex) => (
                     <StepRow
                       key={step.id}
+                      rowIndex={(rowStart[index] ?? index + 2) + 1 + stepIndex}
                       bucketId={bucket.id}
                       item={item}
                       step={step}

@@ -14,6 +14,7 @@
   "dependencies": {
     "@buckets/core": "workspace:*",
     "@buckets/storage": "workspace:*",
+    "@tanstack/react-virtual": "^3.14.24",
     "motion": "^14.9.0",
     "react-resizable-panels": "^4.15.3"
   }
