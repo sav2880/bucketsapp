@@ -21,6 +21,7 @@
     "dev:web": "pnpm --filter @buckets/web dev",
     "build:web": "pnpm --filter @buckets/web build",
     "test:e2e": "pnpm build:web && playwright test --config e2e/playwright.config.ts",
+    "measure:frames": "pnpm build:web && MEASURE_FRAMES=1 playwright test --config e2e/playwright.config.ts frame-rate --project=chromium",
     "check:terminology": "tsx scripts/check-terminology.ts",
     "check:spdx": "tsx scripts/check-spdx.ts",
     "check:licenses": "tsx scripts/check-licenses.ts",

@@ -1,39 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { createBucket, order, pasteItems, rowOf, typeItems } from "./helpers";
 
 /** A 1×1 PNG, enough to go through the whole picture pipeline. */
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
   "base64",
 );
-
-async function createBucket(page: Page, name: string, preset = /Grab/): Promise<void> {
-  await page.getByRole("button", { name: "New bucket" }).first().click();
-  const dialog = page.getByRole("dialog", { name: "New bucket" });
-  await dialog.getByRole("textbox", { name: "Name" }).fill(name);
-  await dialog.getByRole("radio", { name: preset }).check();
-  await dialog.getByRole("button", { name: "Create" }).click();
-  await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
-}
-
-async function typeItems(page: Page, ...titles: string[]): Promise<void> {
-  const box = page.getByRole("textbox", { name: "Add an item" });
-  for (const title of titles) {
-    await box.fill(title);
-    await box.press("Enter");
-    await expect(page.getByRole("textbox", { name: `Title of ${title}` })).toBeVisible();
-  }
-}
-
-const rowOf = (page: Page, title: string): Locator =>
-  page.getByRole("row").filter({ has: page.getByRole("textbox", { name: `Title of ${title}` }) });
-
-/** Item titles in the order the list shows them. */
-const order = (page: Page): Promise<string[]> =>
-  page
-    .getByRole("textbox", { name: /^Title of / })
-    .evaluateAll((boxes) => boxes.map((b) => (b as HTMLInputElement).value));
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
@@ -48,16 +22,7 @@ test("creates a bucket and adds items by typing", async ({ page }) => {
 
 test("adds one item for every pasted line", async ({ page }) => {
   await createBucket(page, "Games");
-  const box = page.getByRole("textbox", { name: "Add an item" });
-  await box.focus();
-  await box.evaluate((input) => {
-    const data = new DataTransfer();
-    data.setData("text/plain", "- Hades\n- Celeste\n- Tunic");
-    // Firefox ignores `clipboardData` in the ClipboardEvent constructor, so attach it afterwards.
-    const event = new Event("paste", { bubbles: true, cancelable: true });
-    Object.defineProperty(event, "clipboardData", { value: data });
-    input.dispatchEvent(event);
-  });
+  await pasteItems(page, ["- Hades", "- Celeste", "- Tunic"]);
   await expect.poll(() => order(page)).toEqual(["Hades", "Celeste", "Tunic"]);
 });
 
