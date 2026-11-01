@@ -89,7 +89,7 @@ test("draws an item, finishes it, and tosses another back", async ({ page }) => 
   await typeItems(page, "Celeste");
   await page.getByTestId("draw").click();
   await page.getByTestId("toss-back").click();
-  const confirm = page.getByRole("dialog");
-  if (await confirm.isVisible()) await confirm.getByRole("button", { name: "Toss back" }).click();
+  // Tossing back always asks first; wait for the question rather than hoping it has appeared.
+  await page.getByRole("dialog").getByRole("button", { name: "Toss back" }).click();
   await expect(page.getByTestId("notice")).toContainText("Tossed back Celeste");
 });
