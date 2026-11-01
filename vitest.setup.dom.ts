@@ -30,3 +30,6 @@ window.ResizeObserver = class {
 // jsdom has no object URLs; pictures use them for previews.
 URL.createObjectURL = () => "blob:test";
 URL.revokeObjectURL = () => undefined;
+
+// jsdom has no scrolling; components that scroll something into view only need it to exist.
+Element.prototype.scrollIntoView = () => undefined;

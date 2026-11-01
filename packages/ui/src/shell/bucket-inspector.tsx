@@ -15,6 +15,8 @@ import {
 import { useState, type ReactElement, type ReactNode } from "react";
 import { useActions } from "../app-environment";
 import { t } from "../i18n";
+import { useMotionSetting } from "../hooks/use-motion-setting";
+import type { MotionSetting } from "../hooks/use-motion-preference";
 import { useLibraryStore } from "../library/library-provider";
 import { ConfirmDialog } from "./confirm-dialog";
 import { ICON_CHOICES, iconGlyph } from "./icons";
@@ -52,6 +54,8 @@ function Field({ label, children }: { label: string; children: ReactNode }): Rea
   );
 }
 
+const MOTION_CHOICES: readonly MotionSetting[] = ["system", "reduce", "allow"];
+
 function days(value: { value: number } | undefined): string {
   return value === undefined ? "" : String(value.value);
 }
@@ -68,6 +72,7 @@ export function BucketInspector({
   onDeleted,
 }: BucketInspectorProps): ReactElement {
   const actions = useActions();
+  const [motionSetting, setMotionSetting] = useMotionSetting();
   const store = useLibraryStore();
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState(false);
@@ -280,6 +285,25 @@ export function BucketInspector({
       <section>
         <h3 style={{ fontSize: "0.9em", color: "var(--text-2)" }}>{t("inspector.members")}</h3>
         <p style={{ color: "var(--text-2)" }}>{t("inspector.comingLater")}</p>
+      </section>
+      <section style={{ display: "grid", gap: "var(--space-2)" }}>
+        <h3 style={{ fontSize: "0.9em", color: "var(--text-2)", margin: 0 }}>
+          {t("settings.app")}
+        </h3>
+        <Field label={t("settings.motion")}>
+          <select
+            value={motionSetting}
+            onChange={(e) => {
+              setMotionSetting(e.target.value as MotionSetting);
+            }}
+          >
+            {MOTION_CHOICES.map((choice) => (
+              <option key={choice} value={choice}>
+                {t(`settings.motion.${choice}`)}
+              </option>
+            ))}
+          </select>
+        </Field>
       </section>
       <button
         type="button"

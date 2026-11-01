@@ -1,8 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { createBucket, type DrawRefusal, type Item } from "@buckets/core";
+import {
+  createBucket,
+  type Bucket,
+  type DrawCheck,
+  type DrawRefusal,
+  type Item,
+  type ItemState,
+} from "@buckets/core";
 import { describe, expect, it } from "vitest";
-import { describeDrawRefusal, describeResolveRefusal, titleHidden } from "./draw-messages";
+import {
+  describeDrawRefusal,
+  describeReady,
+  describeResolveRefusal,
+  titleHidden,
+} from "./draw-messages";
 
 const when = (iso: string): string => `at ${iso}`;
 const item = (title: string): Item => ({ id: title, title }) as Item;
@@ -58,5 +70,46 @@ describe("titleHidden", () => {
     expect(titleHidden(bucket, "cooling")).toBe(true);
     expect(titleHidden(bucket, "hand")).toBe(false);
     expect(titleHidden(bucket, "done")).toBe(false);
+  });
+});
+
+describe("describeReady", () => {
+  const bucket = (rules: Partial<Bucket["rules"]>): Bucket => {
+    const b = createBucket(
+      { name: "B", ownerName: "Me" },
+      { memberId: "me", now: new Date(0), makeId: () => "x" },
+    );
+    Object.assign(b.rules, rules);
+    b.itemOrder.push("a", "b", "c");
+    return b;
+  };
+  const ok = (candidates: number, needsCycleReset = false): Extract<DrawCheck, { ok: true }> => ({
+    ok: true,
+    count: 1,
+    candidates: Array.from({ length: candidates }, () => ({}) as ItemState),
+    needsCycleReset,
+  });
+
+  it("counts the items inside", () => {
+    expect(describeReady(bucket({}), ok(3), 1)).toBe("1 item inside.");
+    expect(describeReady(bucket({}), ok(3), 3)).toBe("3 items inside.");
+  });
+
+  it("counts folded slips in a Mystery Bag", () => {
+    const b = bucket({ hideTitlesUntilDrawn: true });
+    expect(describeReady(b, ok(3), 1)).toBe("1 folded slip inside. No peeking.");
+    expect(describeReady(b, ok(3), 2)).toBe("2 folded slips inside. No peeking.");
+  });
+
+  it("says how many are waiting for a turn when items don't repeat", () => {
+    expect(describeReady(bucket({ noRepeat: "until-cycle-complete" }), ok(2), 3)).toBe(
+      "2 of 3 are waiting for a turn this round.",
+    );
+  });
+
+  it("says a new round is next when everyone has had a turn", () => {
+    expect(describeReady(bucket({ noRepeat: "until-cycle-complete" }), ok(3, true), 3)).toBe(
+      "Everything has had a turn. The next draw starts a new round.",
+    );
   });
 });

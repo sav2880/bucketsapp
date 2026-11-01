@@ -4,6 +4,7 @@ import { setStepDone, type ItemState } from "@buckets/core";
 import type { ReactElement } from "react";
 import { useActions } from "../app-environment";
 import { t } from "../i18n";
+import { formatSpan } from "./format-span";
 
 /** Props for {@link HandCard}. */
 export interface HandCardProps {
@@ -11,6 +12,8 @@ export interface HandCardProps {
   bucketId: string;
   /** The item and its state; its status is `"hand"`. */
   state: ItemState;
+  /** The current time, for "in hand for 2 h". */
+  now: Date;
   /** Whether the current member holds it (and so can tick steps, finish and toss back). */
   mine: boolean;
   /** Name of the holder, shown when it is someone else. */
@@ -32,7 +35,8 @@ export interface HandCardProps {
 }
 
 /**
- * An item that has been drawn: its title, steps to tick off, and Done and Toss back.
+ * An item that has been drawn, as a paper card with a stripe in the bucket's color: its title,
+ * how long it has been in hand, notes, steps to tick off, and Done and Toss back.
  *
  * @param props - See {@link HandCardProps}.
  * @returns The card.
@@ -40,6 +44,7 @@ export interface HandCardProps {
 export function HandCard({
   bucketId,
   state,
+  now,
   mine,
   holderName,
   canResolve,
@@ -52,89 +57,66 @@ export function HandCard({
 }: HandCardProps): ReactElement {
   const actions = useActions();
   const { item } = state;
+  const held = state.heldSince === null ? 0 : now.getTime() - Date.parse(state.heldSince);
+  const doneSteps = item.steps.filter((step) => step.done).length;
   return (
     <li
       ref={(element) => {
         registerCard?.(item.id, element);
       }}
+      className="bk-card"
       data-testid={`hand-${item.id}`}
       // While the slip is on its way, or the title is still hidden, the card can't be read,
       // reached or clicked; `inert` does all three.
       inert={pending || concealed}
-      style={{
-        opacity: pending ? 0 : undefined,
-        background: "var(--paper)",
-        color: "var(--paper-ink)",
-        borderRadius: "var(--r-m)",
-        padding: "var(--space-3)",
-        boxShadow: "var(--shadow-card)",
-        display: "grid",
-        gap: "var(--space-2)",
-      }}
+      style={{ opacity: pending ? 0 : undefined }}
     >
-      <button
-        type="button"
-        onClick={onSelect}
-        style={{
-          all: "unset",
-          cursor: "pointer",
-          fontWeight: 600,
-          fontSize: "1.15em",
-          color: concealed ? "transparent" : undefined,
-        }}
-      >
-        {item.title}
-      </button>
-      {!mine && (
-        <span style={{ color: "var(--paper-ink-2)" }}>
-          {t("hand.heldBy", { name: holderName })}
-        </span>
-      )}
+      <h3 className="bk-card-title" style={{ color: concealed ? "transparent" : undefined }}>
+        <button type="button" onClick={onSelect}>
+          {item.title}
+        </button>
+      </h3>
+      <p className="bk-card-meta">
+        {held < 60_000 ? t("hand.justDrawn") : t("hand.heldFor", { span: formatSpan(held) })}
+      </p>
+      {!mine && <p className="bk-card-meta">{t("hand.heldBy", { name: holderName })}</p>}
+      {item.notes !== "" && <p className="bk-card-notes">{item.notes}</p>}
       {item.steps.length > 0 && (
-        <ul
-          style={{
-            listStyle: "none",
-            margin: 0,
-            padding: 0,
-            display: "grid",
-            gap: "var(--space-1)",
-          }}
-        >
-          {item.steps.map((step) => (
-            <li key={step.id}>
-              <label style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
-                <input
-                  type="checkbox"
-                  checked={step.done}
-                  onChange={(e) => {
-                    actions.run(bucketId, (bucket, ctx) =>
-                      setStepDone(bucket, item.id, step.id, e.target.checked, ctx),
-                    );
-                  }}
-                />
-                {step.title}
-              </label>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="bk-card-steps">
+            {item.steps.map((step) => (
+              <li key={step.id}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={step.done}
+                    onChange={(e) => {
+                      actions.run(bucketId, (bucket, ctx) =>
+                        setStepDone(bucket, item.id, step.id, e.target.checked, ctx),
+                      );
+                    }}
+                  />
+                  {step.title}
+                </label>
+              </li>
+            ))}
+          </ul>
+          <p className="bk-card-meta">
+            {t("hand.stepsProgress", { done: doneSteps, total: item.steps.length })}
+          </p>
+        </>
       )}
       {canResolve && (
-        <div style={{ display: "flex", gap: "var(--space-2)" }}>
-          <button
-            type="button"
-            onClick={onDone}
-            data-testid="done"
-            style={{
-              background: "var(--enamel)",
-              color: "var(--on-enamel)",
-              border: 0,
-              borderRadius: "var(--r-s)",
-              padding: "var(--space-1) var(--space-3)",
-            }}
-          >
+        <div className="bk-card-actions">
+          <button type="button" className="bk-btn-done" onClick={onDone} data-testid="done">
             {t("hand.done")}
           </button>
-          <button type="button" onClick={onTossBack} data-testid="toss-back">
+          <button
+            type="button"
+            className="bk-btn-toss"
+            onClick={onTossBack}
+            data-testid="toss-back"
+          >
             {t("hand.tossBack")}
           </button>
         </div>

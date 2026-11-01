@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import type { Bucket, DrawRefusal, ResolveRefusal } from "@buckets/core";
+import type { Bucket, DrawCheck, DrawRefusal, ResolveRefusal } from "@buckets/core";
 import { t, tp } from "../i18n";
 
 /**
@@ -51,4 +51,29 @@ export function describeResolveRefusal(refusal: ResolveRefusal): string {
     case "not-permitted":
       return t("draw.hint.notPermitted");
   }
+}
+
+/**
+ * The short line under the Draw button when a draw is possible: how many are waiting this
+ * round, or how many slips are inside.
+ *
+ * @param bucket - The bucket.
+ * @param check - The result of `checkDraw`, when it allows a draw.
+ * @param inCount - Items waiting inside the bucket.
+ * @returns One sentence.
+ */
+export function describeReady(
+  bucket: Bucket,
+  check: Extract<DrawCheck, { ok: true }>,
+  inCount: number,
+): string {
+  if (bucket.rules.noRepeat === "until-cycle-complete") {
+    if (check.needsCycleReset) return t("draw.ready.newRound");
+    return t("draw.ready.round", {
+      count: check.candidates.length,
+      total: bucket.itemOrder.length,
+    });
+  }
+  if (bucket.rules.hideTitlesUntilDrawn) return tp("draw.ready.mystery", inCount);
+  return tp("draw.ready.items", inCount);
 }

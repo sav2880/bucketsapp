@@ -38,7 +38,7 @@ export interface Choreography {
   /** Set on the bucket's SVG group. */
   bodyRef: RefObject<SVGGElement | null>;
   /** Set on the done pile, when there is one. */
-  pileRef: RefObject<HTMLElement | null>;
+  pileRef: RefObject<HTMLButtonElement | null>;
   /**
    * Tells the hook where a card is, for flying slips to it. Called from a card's `ref`.
    *
@@ -116,7 +116,7 @@ const without = (set: ReadonlySet<string>, id: string): Set<string> => {
 export function useChoreography(concealTitles: boolean): Choreography {
   const animator = useAnimator();
   const bodyRef = useRef<SVGGElement | null>(null);
-  const pileRef = useRef<HTMLElement | null>(null);
+  const pileRef = useRef<HTMLButtonElement | null>(null);
   const cards = useRef(new Map<string, HTMLElement>());
   const busyRef = useRef(false);
   const [busy, setBusy] = useState(false);

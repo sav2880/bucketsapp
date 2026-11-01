@@ -258,7 +258,7 @@ describe("finishing and tossing back", () => {
   it("sends a finished card to the done pile and pulses it", async () => {
     const r = recorder();
     const { result } = setup(r.animator);
-    const pile = document.createElement("div");
+    const pile = document.createElement("button");
     pile.getBoundingClientRect = () => ({ left: 10, top: 20, width: 40, height: 20 }) as DOMRect;
     result.current.pileRef.current = pile;
     const shot = result.current.snapshot("a");

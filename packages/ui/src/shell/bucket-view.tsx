@@ -1,15 +1,25 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { canDraw, checkDraw, deriveItems, type Bucket, type DrawRefusal } from "@buckets/core";
-import { useMemo, useState, type ReactElement, type ReactNode, type RefObject } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { useActions, useEnvironment, useNow } from "../app-environment";
 import { t, tp } from "../i18n";
+import { useMotionPreference } from "../hooks/use-motion-preference";
 import { useAnnounce } from "../live-region";
 import { useBucket } from "../library/library-provider";
 import { BucketArt } from "./bucket-art";
 import { bucketVisual } from "./bucket-art-model";
-import { describeDrawRefusal, describeResolveRefusal } from "./draw-messages";
+import { describeDrawRefusal, describeReady, describeResolveRefusal } from "./draw-messages";
 import { ItemList } from "./item-list";
+import { BucketTooltip } from "./bucket-tooltip";
+import { DonePile } from "./done-pile";
 import { HandCard } from "./hand-card";
 import { useChoreography } from "./use-choreography";
 import { iconGlyph } from "./icons";
@@ -73,14 +83,20 @@ function BucketPane({
       timeStyle: "short",
       ...(bucket.timeZone === undefined ? {} : { timeZone: bucket.timeZone }),
     }).format(new Date(iso));
-  const hint = refusal === undefined ? "" : describeDrawRefusal(refusal, when);
+  const why = refusal === undefined ? "" : describeDrawRefusal(refusal, when);
 
   const inCount = states.filter((s) => s.status === "in").length;
   const restingCount = states.filter((s) => s.status === "cooling").length;
   const choreo = useChoreography(bucket.rules.hideTitlesUntilDrawn);
   const visual = bucketVisual(refusal);
+  const drawing = choreo.pending.size > 0;
+  const hint = drawing ? t("draw.drawing") : check.ok ? describeReady(bucket, check, inCount) : why;
+  const doneCount = states.filter((s) => s.status === "done").length;
+  const showPile = bucket.rules.onDone === "remove" || doneCount > 0;
+  const listRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useMotionPreference();
   // The lid comes off while a slip is still leaving the bucket.
-  const lidOn = visual.lidOn && choreo.pending.size === 0;
+  const lidOn = visual.lidOn && !drawing;
   const inHand = states.filter((s) => s.status === "hand");
   const mine = inHand.filter((s) => s.heldBy === environment.memberId);
   const others = inHand.filter((s) => s.heldBy !== environment.memberId);
@@ -178,7 +194,7 @@ function BucketPane({
         }}
       >
         {role === "viewer" && <p style={{ color: "var(--text-2)" }}>{t("bucket.readOnly")}</p>}
-        <div style={{ display: "grid", justifyItems: "center", gap: "var(--space-2)" }}>
+        <BucketTooltip text={drawing ? "" : why}>
           <BucketArt
             inCount={inCount}
             restingCount={restingCount}
@@ -204,12 +220,14 @@ function BucketPane({
               opacity: refusal === undefined && !choreo.busy ? 1 : 0.5,
             }}
           >
-            {t("draw.button")}
+            {check.ok && check.count > 1
+              ? t("draw.buttonMany", { count: check.count })
+              : t("draw.button")}
           </button>
           <p id="draw-hint" style={{ color: "var(--text-2)", margin: 0, minHeight: "1.4em" }}>
             {hint}
           </p>
-        </div>
+        </BucketTooltip>
         {notice !== "" && (
           <p data-testid="notice" style={{ margin: 0 }}>
             {notice}
@@ -241,6 +259,7 @@ function BucketPane({
                   (state.heldBy === null ? undefined : bucket.members[state.heldBy]?.displayName) ??
                   ""
                 }
+                now={now}
                 canResolve={
                   canResolve &&
                   (state.heldBy === environment.memberId || role === "owner" || role === "editor")
@@ -261,15 +280,29 @@ function BucketPane({
             ))}
           </ul>
         </section>
-        <ItemList
-          bucket={bucket}
-          states={states}
-          selectedIds={selectedIds}
-          onSelectedIdsChange={onSelectedIdsChange}
-          canEdit={role === "owner" || role === "editor"}
-          canTick={canResolve}
-          addInputRef={addInputRef}
-        />
+        {showPile && (
+          <DonePile
+            count={doneCount}
+            pileRef={choreo.pileRef}
+            onShow={() => {
+              listRef.current?.scrollIntoView({
+                behavior: reducedMotion ? "auto" : "smooth",
+                block: "start",
+              });
+            }}
+          />
+        )}
+        <div ref={listRef}>
+          <ItemList
+            bucket={bucket}
+            states={states}
+            selectedIds={selectedIds}
+            onSelectedIdsChange={onSelectedIdsChange}
+            canEdit={role === "owner" || role === "editor"}
+            canTick={canResolve}
+            addInputRef={addInputRef}
+          />
+        </div>
       </div>
       <TossBackDialog
         title={tossing === undefined ? undefined : titleOf(tossing)}

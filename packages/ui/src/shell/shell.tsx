@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useRef, useState, type ReactElement } from "react";
+import { StoredMotionSettingProvider } from "../hooks/use-motion-setting";
 import { useActions, useEnvironment } from "../app-environment";
 import { ResizableLayout, type PaneSpec } from "../layout/resizable-layout";
 import { useLibrary } from "../library/library-provider";
@@ -27,6 +28,14 @@ import {
  * @returns The shell.
  */
 export function Shell(): ReactElement {
+  return (
+    <StoredMotionSettingProvider>
+      <ShellContent />
+    </StoredMotionSettingProvider>
+  );
+}
+
+function ShellContent(): ReactElement {
   const { library, saveError } = useLibrary();
   const environment = useEnvironment();
   const actions = useActions();
