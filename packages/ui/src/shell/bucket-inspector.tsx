@@ -20,6 +20,7 @@ import type { MotionSetting } from "../hooks/use-motion-preference";
 import { useLibraryStore } from "../library/library-provider";
 import { ConfirmDialog } from "./confirm-dialog";
 import { ICON_CHOICES, iconGlyph } from "./icons";
+import { RuleNumberField } from "./rule-number-field";
 import { TextField } from "./text-field";
 
 /** Props for {@link BucketInspector}. */
@@ -55,10 +56,6 @@ function Field({ label, children }: { label: string; children: ReactNode }): Rea
 }
 
 const MOTION_CHOICES: readonly MotionSetting[] = ["system", "reduce", "allow"];
-
-function days(value: { value: number } | undefined): string {
-  return value === undefined ? "" : String(value.value);
-}
 
 /**
  * Details of a bucket: name, icon, color, type and every rule.
@@ -96,36 +93,27 @@ export function BucketInspector({
     </label>
   );
   const whole = (key: "drawCount" | "maxInHand", label: string): ReactElement => (
-    <Field label={label}>
-      <input
-        key={`${key}-${String(rules[key])}`}
-        type="number"
-        min={1}
-        step={1}
-        defaultValue={rules[key]}
-        disabled={!canEdit}
-        onBlur={(e) => {
-          if (Number(e.target.value) !== rules[key]) changeRules({ [key]: Number(e.target.value) });
-        }}
-      />
-    </Field>
+    <RuleNumberField
+      label={label}
+      value={rules[key]}
+      min={1}
+      disabled={!canEdit}
+      onCommit={(n) => {
+        if (n !== undefined) changeRules({ [key]: n });
+      }}
+    />
   );
   const daysField = (key: "cooldown" | "cycleResetAfter", label: string): ReactElement => (
-    <Field label={label}>
-      <input
-        key={`${key}-${days(rules[key])}`}
-        type="number"
-        min={0}
-        step={1}
-        defaultValue={days(rules[key])}
-        disabled={!canEdit}
-        onBlur={(e) => {
-          const n = e.target.value === "" ? undefined : Number(e.target.value);
-          if (String(n ?? "") !== days(rules[key]))
-            changeRules({ [key]: n === undefined ? undefined : duration(n, "days") });
-        }}
-      />
-    </Field>
+    <RuleNumberField
+      label={label}
+      value={rules[key]?.value}
+      min={0}
+      allowEmpty
+      disabled={!canEdit}
+      onCommit={(n) => {
+        changeRules({ [key]: n === undefined ? undefined : duration(n, "days") });
+      }}
+    />
   );
   const select = <K extends "inHandScope" | "onDone" | "selection" | "tossBackConfirm">(
     key: K,

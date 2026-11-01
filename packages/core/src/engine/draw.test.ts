@@ -319,6 +319,49 @@ describe("limits", () => {
     });
   });
 
+  it("freezes drawing until the hand is back under a lowered limit", () => {
+    const bucket = makeBucket({
+      preset: "rotation-pool",
+      items: 4,
+      rules: { maxInHand: 2, drawCount: 2 },
+    });
+    const rng = createSeededRng(13);
+    const makeId = idMaker("e");
+    const held = applyOk(bucket, draw(bucket, request(rng, T0, makeId)));
+    expect(held).toHaveLength(2);
+
+    // The owner lowers the limit while two are in hand: both stay, nothing more is drawn.
+    bucket.rules.maxInHand = 1;
+    expect(checkDraw(bucket, "me", new Date(T0 + HOUR))).toMatchObject({
+      ok: false,
+      reason: "hand-full",
+    });
+
+    const finish = (itemId: string, nowMs: number): void => {
+      applyOk(
+        bucket,
+        resolve(bucket, {
+          itemId,
+          kind: "done",
+          memberId: "me",
+          deviceId: "d1",
+          now: new Date(nowMs),
+          makeId,
+        }),
+      );
+    };
+    // One finished leaves one in hand, which is exactly the new limit: still no room.
+    finish(held[0] ?? "", T0 + 2 * HOUR);
+    expect(checkDraw(bucket, "me", new Date(T0 + 3 * HOUR))).toMatchObject({
+      ok: false,
+      reason: "hand-full",
+    });
+    // Only once the hand is empty is there an open slot, and a draw is capped at it.
+    finish(held[1] ?? "", T0 + 4 * HOUR);
+    const next = checkDraw(bucket, "me", new Date(T0 + 5 * HOUR));
+    expect(next).toMatchObject({ ok: true, count: 1 });
+  });
+
   it("counts a hand per member when the scope is per-member", () => {
     const bucket = makeBucket({ preset: "round-robin", items: 4, members: { you: "drawer" } });
     const rng = createSeededRng(12);
