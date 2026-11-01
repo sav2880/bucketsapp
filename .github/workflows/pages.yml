@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: Apache-2.0
+name: Publish web app
+
+# Puts the web build on GitHub Pages so anyone can try Buckets from a link, with nothing to
+# install. It does nothing until Pages is switched on (Settings → Pages → Source: GitHub
+# Actions). After that, run it by hand (Actions → Publish web app → Run workflow), or set the
+# repository variable PUBLISH_WEB to "true" to publish on every push to main.
+# See docs/sharing.md.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    # A push only publishes when PUBLISH_WEB is "true"; the manual button always works.
+    if: github.event_name == 'workflow_dispatch' || vars.PUBLISH_WEB == 'true'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:web
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  deploy:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

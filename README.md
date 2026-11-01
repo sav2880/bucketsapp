@@ -61,6 +61,10 @@ rustup target add aarch64-apple-darwin x86_64-apple-darwin    # for universal bu
 
 Follow the [Tauri Linux prerequisites](https://v2.tauri.app/start/prerequisites/) if you also want to run the desktop shell.
 
+## Try it in a browser
+
+The web app runs entirely in the browser, with nothing to install. To let other people try a test build from a link, see [docs/sharing.md](docs/sharing.md).
+
 ## Getting started
 
 ```bash
