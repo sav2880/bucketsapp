@@ -12,13 +12,13 @@
 
 - M3 is built: the SVG bucket with paper slips, a face and a lid; draw, return, toss-back and finish animations with Motion; the paper card, the done pile, the explanation over the bucket, reduced motion, and tests (§12.3, §15).
 - §12.3a records what M3 settled: the animation sequence, the face, the lid rules, announcements before animations, the busy lock, the tooltip and the Motion setting. §12.7 notes that the Draw button stays pressable when it can't draw.
-- Decisions 22–25 (§17). New risk about very large buckets (§16). ADR: `docs/adr/0003-m3-bucket-visuals.md`. A usability script for the 3–5 person check is in `docs/design/m3-usability-check.md`.
+- Decisions 22–26 (§17); the bundle identifier is now `io.github.sav2880.buckets` (decision 21) and §18 has no open questions. New risk about very large buckets (§16). ADR: `docs/adr/0003-m3-bucket-visuals.md`. A usability script for the 3–5 person check is in `docs/design/m3-usability-check.md`.
 
 ### Changes in v0.8
 
 - M2 is built: the three-pane shell, resizable panes and columns, Reminders-style entry with steps, links and images, the inspector, a plain draw loop, local persistence on desktop (files) and web (IndexedDB), a web app, and Playwright tests (§15).
 - §8.5 records the storage layout and how documents are saved. §12.2 and §12.4 record the pane defaults, the breakpoints and how editing, moving and images behave.
-- Decisions 17–21 (§17) cover Automerge layering, the item-move rules, plaintext picture storage until M5, the picture pipeline and the development bundle identifier. Open question 2 (§18) is how the desktop app should open links. ADR: `docs/adr/0002-m2-persistence-and-shell.md`.
+- Decisions 17–21 (§17) cover Automerge layering, the item-move rules, plaintext picture storage until M5, the picture pipeline and the development bundle identifier. How the desktop app opens links is decided (decision 26) but not built. ADR: `docs/adr/0002-m2-persistence-and-shell.md`.
 
 ### Changes in v0.7
 
@@ -779,7 +779,7 @@ A cute, rounded bucket with a little handle and a couple of slips peeking out. I
 
 - Type on the empty row and press Return for the next item. Pasting several lines makes one item per line (list markers are stripped). Tab on a new row makes it a step of the item above; Shift-Tab turns a step back into an item.
 - Click, Ctrl/⌘-click and Shift-click select; Delete asks first. ⌥↑ and ⌥↓ reorder, and a "Move to bucket" menu moves items without a mouse. Native drag does the same, including dropping on a bucket in the sidebar.
-- Links accept only `http`, `https` and `mailto`, and are never fetched. On the web they open in a new tab. The desktop app can only copy them for now (open question 2).
+- Links accept only `http`, `https` and `mailto`, and are never fetched. On the web they open in a new tab. The desktop app can only copy them for now; opening them will use the Tauri opener plugin, limited to those three kinds of link (decision 26).
 - Pictures: up to 10 MB of JPEG, PNG, WebP, GIF or HEIC (HEIC only where the browser can decode it, in practice WebKit). Each is scaled to at most 2,560 px on its longest side and re-drawn through a canvas, which removes EXIF data including location. JPEG and WebP keep their type, PNG and GIF become PNG, HEIC becomes JPEG, and an animated GIF keeps only its first frame. The person is asked for a description when adding one.
 
 ## 13. Distribution and updates
@@ -914,17 +914,13 @@ Estimates assume one full-time developer working with AI assistance. They're rou
 | 18 | Moving items between buckets | Definition moves, history stays behind, items in hand or holding a child bucket can't move; destination first, then remove from source | §8.5; ADR 0002 |
 | 19 | Pictures before encryption | Plain bytes stored by SHA-256 until M5, then re-keyed; cleanup deferred to M4 | §5, §8.5, M4, M5 |
 | 20 | Picture pipeline | Up to 10 MB, scaled to 2,560 px and re-encoded in the browser, which strips EXIF; animated GIF keeps its first frame; HEIC only where decodable | §12.4a |
-| 21 | Bundle identifier for development | `dev.buckets.app.dev` until a real one is chosen (open question 1) | §18 |
+| 21 | Bundle identifier | `io.github.sav2880.buckets` (chosen 2026-10-31, replacing the development-only `dev.buckets.app.dev`). It sets the desktop app's data folder and is used for macOS notarization and the updater. Data saved under the old identifier stays in the old folder and has to be moved by hand once (macOS: `~/Library/Application Support/dev.buckets.app.dev` to `…/io.github.sav2880.buckets`); only development builds ever used it | `apps/desktop/src-tauri/tauri.conf.json`; M12 signing and updater |
 | 22 | Animation library | Motion (`motion` 14.x, MIT) drives the animations, behind an `Animator` interface so the sequencing is tested without a browser | §12.3a; ADR 0003 |
 | 23 | Announcements and animation | The result is announced at once, before the animation; the animation is hidden from assistive technology | §12.3a, §12.7 |
 | 24 | The Draw button | `aria-disabled` rather than `disabled`, so it can be focused and pressed to hear why drawing isn't possible | §12.7 |
 | 25 | The bucket's face | Kept from the prototype (idle, surprised, happy, waiting, asleep, "no") | §12.3a |
+| 26 | Opening links on desktop | Use the Tauri opener plugin with its permission limited to `http`, `https` and `mailto`, and no extra confirmation. Not built yet; until it is, desktop links can only be copied | §12.4a; to build before M4 ends |
 
 ## 18. Open questions
 
-| # | Question | Notes |
-|---|---|---|
-| 1 | What is the app's bundle identifier? | `apps/desktop/src-tauri/tauri.conf.json` uses the development-only identifier `dev.buckets.app.dev` (changed from `com.example.buckets` at the start of M2). The identifier sets where the desktop app keeps its data and is used for macOS notarization and the updater, so pick a reverse-domain name you control before any release (M12 at the latest). Changing it moves the app data folder, so the release build needs a one-time move of any data saved under the development identifier. |
-| 2 | How should the desktop app open links? | In M2 links open in a new tab on the web and can only be copied on desktop. Opening them needs the Tauri opener plugin (or a small Rust command) with its permission limited to `http`, `https` and `mailto`. Decide before M4, and say whether an extra confirmation is wanted. |
-
-New questions go here as they come up during development (see AGENTS.md §11).
+None at the moment. New questions go here as they come up during development (see AGENTS.md §11).

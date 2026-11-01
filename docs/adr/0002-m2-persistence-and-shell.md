@@ -43,6 +43,6 @@ Both apps differ only in the storage they pass to `AppRoot` (`packages/ui`), so 
 
 ## Known gaps
 
-- Desktop links can only be copied (plan.md §18, question 2).
-- The development bundle identifier means a one-time data move before release (plan.md §18, question 1).
+- Desktop links can only be copied; the Tauri opener plugin will fix that (plan.md §17, decision 26).
+- The bundle identifier is now `io.github.sav2880.buckets` (decision 21). Data saved under the development identifier has to be moved by hand once.
 - jsdom can't test real pane dragging or the picture canvas, so those rely on the Playwright tests and manual checks.
