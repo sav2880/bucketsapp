@@ -18,6 +18,7 @@ jobs:
   check:
     name: pnpm check (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -53,6 +54,7 @@ jobs:
   desktop-build:
     name: tauri build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -94,6 +96,9 @@ jobs:
   e2e:
     name: e2e (Playwright)
     runs-on: ubuntu-22.04
+    # A stuck download or package install once held this job for over 25 minutes; it normally
+    # takes about 6. A time limit turns a hang into a quick failure that can be re-run.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -102,8 +107,23 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The browsers are large; keep them between runs, keyed by the Playwright version.
+      - id: playwright
+        run: echo "version=$(pnpm exec playwright --version | cut -d' ' -f2)" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - name: Install browsers and their system libraries
+        if: steps.browsers.outputs.cache-hit != 'true'
+        timeout-minutes: 10
         run: pnpm exec playwright install --with-deps chromium webkit firefox
+      # The system libraries are not part of the cache, so a cache hit still needs them.
+      - name: Install the browsers' system libraries
+        if: steps.browsers.outputs.cache-hit == 'true'
+        timeout-minutes: 10
+        run: pnpm exec playwright install-deps chromium webkit firefox
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -116,6 +136,7 @@ jobs:
   prototype:
     name: prototype check
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: docs/prototype
@@ -134,6 +155,7 @@ jobs:
     name: DCO sign-off
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
